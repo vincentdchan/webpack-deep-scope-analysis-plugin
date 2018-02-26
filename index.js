@@ -15,7 +15,8 @@ class WebpackDeepScopeAnalysisPlugin {
       data.normalModuleFactory.plugin("parser", (parser, options) => {
         parser.plugin("program", (ast) => {
           const scopeManager = this.analyze(ast);
-          console.log(scopeManager.scopes);
+          debugger;
+          console.log(scopeManager.scopes.map(item => item.references));
         });
       });
     });
