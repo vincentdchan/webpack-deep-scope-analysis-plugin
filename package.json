@@ -1,0 +1,11 @@
+{
+  "name": "webpack-deep-scope-analysis",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Vincent Chan <cdzos97@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "estraverse": "^4.2.0",
+    "webpack": "^3.11.0"
+  }
+}
