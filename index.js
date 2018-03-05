@@ -23,7 +23,7 @@ class WebpackDeepScopeAnalysisPlugin {
 
         module.parser.plugin("program", ast => {
           if (!moduleManager.contains(moduleInfo.name)) {
-            moduleInfo.analyze(ast);
+            // moduleInfo.analyze(ast);
             moduleManager.registerModule(moduleInfo);
             console.log(moduleInfo.name);
             debugger;

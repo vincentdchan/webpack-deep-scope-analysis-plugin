@@ -1,6 +1,9 @@
 // const assert = require('./assert')
 import { equal } from './assert'
 
-function myFunction() {
-  assert.equal(1, arguments[0]);
+export function myFunction() {
+  function it() {
+    equal(1, arguments[0]);
+  }
+  it();
 }
