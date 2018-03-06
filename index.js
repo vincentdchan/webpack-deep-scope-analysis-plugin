@@ -9,23 +9,22 @@ const version = require("./package.json").version;
 
 const moduleManager = new ModuleManager();
 
+const pluginName = "WebpackDeepScopeAnalysisPlugin";
+
 class WebpackDeepScopeAnalysisPlugin {
 
   apply(compiler) {
 
-    compiler.plugin("compilation", (compilation, data) => {
+    compiler.hooks.compilation.tap(pluginName, (compilation, data) => {
       let moduleInfo;
 
-      compilation.plugin('normal-module-loader', function(loaderContext, module) {
-        // this is where all the modules are loaded
-        // one by one, no dependencies are created yet
+      compilation.hooks.normalModuleLoader.tap(pluginName, function(loaderContext, module) {
         moduleInfo = new ModuleInfo(module.resource, module);
 
-        module.parser.plugin("program", ast => {
+        module.parser.hooks.program.tap(pluginName, ast => {
           if (!moduleManager.contains(moduleInfo.name)) {
-            // moduleInfo.analyze(ast);
+            moduleInfo.analyze(ast);
             moduleManager.registerModule(moduleInfo);
-            console.log(moduleInfo.name);
             debugger;
           }
         });

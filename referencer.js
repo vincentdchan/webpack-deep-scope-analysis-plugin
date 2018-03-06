@@ -597,6 +597,7 @@ class Referencer extends esrecurse.Visitor {
         assert(this.scopeManager.__isES6() && this.scopeManager.isModule(), "ImportDeclaration should appear when the mode is ES6 and in the module context.");
 
         const importer = new Importer(node, this);
+        debugger;
 
         importer.visit(node);
     }

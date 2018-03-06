@@ -21,8 +21,8 @@ class ModuleInfo {
         directive: false,
         nodejsScope: false,
         impliedStrict: false,
-        sourceType: "script",  // one of ['script', 'module']
-        ecmaVersion: 5,
+        sourceType: "module",  // one of ['script', 'module']
+        ecmaVersion: 6,
         childVisitorKeys: null,
         fallback: "iteration"
     };
