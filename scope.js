@@ -31,6 +31,7 @@ const Syntax = require("estraverse").Syntax;
 const Reference = require("./reference");
 const Variable = require("./variable");
 const Definition = require("./definition").Definition;
+const ExportInfo = require("./export-info");
 const assert = require("assert");
 
 /**
@@ -582,9 +583,34 @@ class GlobalScope extends Scope {
 }
 
 class ModuleScope extends Scope {
+
     constructor(scopeManager, upperScope, block) {
         super(scopeManager, "module", upperScope, block, false);
+        this.exports = [];
+        this.currentExportInfo = null;
+        this.exportVars = new WeakMap();
     }
+
+    startExport(type) {
+        this.currentExportInfo = new ExportInfo(type);
+        return this.currentExportInfo;
+    }
+
+    finishExport() {
+        const current = this.currentExportInfo;
+        this.exports.push(this.currentExportInfo);
+        this.currentExportInfo = null;
+        return current;
+    }
+
+    __define(node, def) {
+        super.__define(node, def);
+    }
+
+    __referencing(node, assign, writeExpr, maybeImplicitGlobal, partial, init) {
+        super.__referencing(node, assign, writeExpr, maybeImplicitGlobal, partial, init);
+    }
+
 }
 
 class FunctionExpressionNameScope extends Scope {

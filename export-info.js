@@ -9,16 +9,13 @@ class ExportInfo {
 
   constructor(exportType) {
     this.type = exportType;
-    this.__variable = null;
+    this.__variables = [];
     this.__source = null;
+    this.__alias = null;
   }
 
-  get variable() {
-    return this.__variable
-  }
-
-  set variable(value) {
-    this.__variable = value;
+  get variables() {
+    return this.__variables;
   }
 
   get source() {
@@ -27,6 +24,14 @@ class ExportInfo {
 
   set source(value) {
     this.__source = value;
+  }
+
+  get alias() {
+    return this.__alias;
+  }
+
+  set alias(value) {
+    this.__alias = value;
   }
 
 }

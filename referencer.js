@@ -119,7 +119,6 @@ class Referencer extends esrecurse.Visitor {
         this.options = options;
         this.scopeManager = scopeManager;
         this.parent = null;
-        this.exportInfo = null;
         this.isInnerMethodDefinition = false;
     }
 
@@ -633,22 +632,46 @@ class Referencer extends esrecurse.Visitor {
 
     ExportDefaultDeclaration(node) {
         this.startExport(ExportInfo.ExportType.default);
+        const currentScope = this.currentScope();
+        if (currentScope.type !== "module") {
+            throw new Error("use export in a non module scope");
+        }
+        if (node.declaration.type === "AssignmentExpression") {
+            const decl = node.declaration;
+            currentScope.__define(decl.left, new Definition(
+                Variable.ExportDefault, 
+                decl.left.name,
+                decl,
+                node,
+                null,
+                null,
+            ));
+        }
         this.visitExportDeclaration(node, true);
         this.finishExport();
     }
 
     ExportAllDeclaration(node) {
-        this.startExport(ExportInfo.ExportType.all);
+        const info = this.startExport(ExportInfo.ExportType.all);
+        info.source = node.source.value;
         this.finishExport();
     }
 
     startExport(exportType) {
-        this.exportInfo = new ExportInfo(exportType);
+        const currentScope = this.currentScope();
+        if (currentScope.type !== "module") {
+            throw new Error("use export in a non module scope");
+        }
+        return currentScope.startExport(exportType);
     }
 
     finishExport() {
-        this.scopeManager.addExportInfo(this.exportInfo);
-        this.exportInfo = null;
+        const currentScope = this.currentScope();
+        if (currentScope.type !== "module") {
+            throw new Error("use export in a non module scope");
+        }
+
+        return currentScope.finishExport();
     }
 
     ExportSpecifier(node) {

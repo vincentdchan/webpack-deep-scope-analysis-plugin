@@ -29,6 +29,7 @@
  * @class Variable
  */
 class Variable {
+
     constructor(name, scope) {
 
         /**
@@ -72,6 +73,8 @@ class Variable {
          * @member {Scope} Variable#scope
          */
         this.scope = scope;
+
+        this.exportInfo = null;
     }
 }
 
