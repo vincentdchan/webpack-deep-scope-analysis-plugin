@@ -44,6 +44,7 @@ const BlockScope = Scope.BlockScope;
  * @class ScopeManager
  */
 class ScopeManager {
+
     constructor(options) {
         this.scopes = [];
         this.globalScope = null;
@@ -51,6 +52,12 @@ class ScopeManager {
         this.__currentScope = null;
         this.__options = options;
         this.__declaredVariables = new WeakMap();
+        this.__exportedVariables = new WeakMap();
+        this.__exportInfo = [];
+    }
+
+    addExportInfo(info) {
+        this.__exportInfo.push(info);
     }
 
     __useDirective() {

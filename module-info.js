@@ -56,8 +56,14 @@ class ModuleInfo {
     referencer.visit(tree);
 
     assert(scopeManager.__currentScope === null, "currentScope should be null.");
-
     this.__scopeManager = scopeManager;
+
+    this.analyzeVariables();
+  }
+
+  analyzeVariables() {
+    const moduleScope = this.__scopeManager.scopes[1]; // default 1 is module Scope;
+
   }
 
   /**

@@ -32,6 +32,7 @@ const Reference = require("./reference");
 const Variable = require("./variable");
 const PatternVisitor = require("./pattern-visitor");
 const definition = require("./definition");
+const ExportInfo = require("./export-info");
 const assert = require("assert");
 
 const ParameterDefinition = definition.ParameterDefinition;
@@ -65,6 +66,7 @@ function traverseIdentifierInPattern(options, rootPattern, referencer, callback)
 // implementation dependent.
 
 class Importer extends esrecurse.Visitor {
+
     constructor(declaration, referencer) {
         super(null, referencer.options);
         this.declaration = declaration;
@@ -117,6 +119,7 @@ class Referencer extends esrecurse.Visitor {
         this.options = options;
         this.scopeManager = scopeManager;
         this.parent = null;
+        this.exportInfo = null;
         this.isInnerMethodDefinition = false;
     }
 
@@ -597,12 +600,16 @@ class Referencer extends esrecurse.Visitor {
         assert(this.scopeManager.__isES6() && this.scopeManager.isModule(), "ImportDeclaration should appear when the mode is ES6 and in the module context.");
 
         const importer = new Importer(node, this);
-        debugger;
 
         importer.visit(node);
     }
 
-    visitExportDeclaration(node) {
+    visitExportDeclaration(node, isDefault) {
+        const moduleScope = this.scopeManager.__currentScope;
+        if (moduleScope.type !== "module") {
+            throw new Error("Export declaration must be used in module scope");
+        }
+
         if (node.source) {
             return;
         }
@@ -615,11 +622,33 @@ class Referencer extends esrecurse.Visitor {
     }
 
     ExportDeclaration(node) {
-        this.visitExportDeclaration(node);
+        this.visitExportDeclaration(node, false);
     }
 
     ExportNamedDeclaration(node) {
-        this.visitExportDeclaration(node);
+        this.startExport(ExportInfo.ExportType.named);
+        this.visitExportDeclaration(node, false);
+        this.finishExport();
+    }
+
+    ExportDefaultDeclaration(node) {
+        this.startExport(ExportInfo.ExportType.default);
+        this.visitExportDeclaration(node, true);
+        this.finishExport();
+    }
+
+    ExportAllDeclaration(node) {
+        this.startExport(ExportInfo.ExportType.all);
+        this.finishExport();
+    }
+
+    startExport(exportType) {
+        this.exportInfo = new ExportInfo(exportType);
+    }
+
+    finishExport() {
+        this.scopeManager.addExportInfo(this.exportInfo);
+        this.exportInfo = null;
     }
 
     ExportSpecifier(node) {

@@ -19,13 +19,13 @@ class WebpackDeepScopeAnalysisPlugin {
       let moduleInfo;
 
       compilation.hooks.normalModuleLoader.tap(pluginName, function(loaderContext, module) {
-        moduleInfo = new ModuleInfo(module.resource, module);
+        moduleInfo = new ModuleInfo(module.rawRequest, module);
 
         module.parser.hooks.program.tap(pluginName, ast => {
           if (!moduleManager.contains(moduleInfo.name)) {
             moduleInfo.analyze(ast);
-            moduleManager.registerModule(moduleInfo);
             debugger;
+            moduleManager.registerModule(moduleInfo);
           }
         });
         
