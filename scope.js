@@ -589,6 +589,7 @@ class ModuleScope extends Scope {
         this.exports = [];
         this.currentExportInfo = null;
         this.exportVars = new WeakMap();
+        this.isDefaultExpression = false;
     }
 
     startExport(type) {
@@ -605,10 +606,19 @@ class ModuleScope extends Scope {
 
     __define(node, def) {
         super.__define(node, def);
+        const varName = node.name;
+        if (this.currentExportInfo) {
+            const variable = this.set.get(varName);
+            this.currentExportInfo.variables.push(variable);
+        }
     }
 
     __referencing(node, assign, writeExpr, maybeImplicitGlobal, partial, init) {
         super.__referencing(node, assign, writeExpr, maybeImplicitGlobal, partial, init);
+        const ref = this.references[this.references.length - 1];
+        if (this.currentExportInfo) {
+            this.currentExportInfo.__refs.push(ref);
+        }
     }
 
 }

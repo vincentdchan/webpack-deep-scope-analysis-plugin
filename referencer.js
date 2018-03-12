@@ -625,17 +625,50 @@ class Referencer extends esrecurse.Visitor {
     }
 
     ExportNamedDeclaration(node) {
-        this.startExport(ExportInfo.ExportType.named);
-        this.visitExportDeclaration(node, false);
-        this.finishExport();
+        if (node.declaration) {
+            this.startExport(ExportInfo.ExportType.named);
+            this.visitExportDeclaration(node, false);
+            this.finishExport();
+        } else {
+            const specifiers = node.specifiers;
+            const source = node.source ? node.source.value : null;
+            specifiers.forEach(item => {
+                this.visitExportSpecifier(item, source);
+            })
+        }
     }
 
-    ExportDefaultDeclaration(node) {
-        this.startExport(ExportInfo.ExportType.default);
+    visitExportSpecifier(node, source) {
         const currentScope = this.currentScope();
         if (currentScope.type !== "module") {
             throw new Error("use export in a non module scope");
         }
+        
+        const localName = node.local.name;
+        const exportedName = node.exported.name;
+
+        let exportInfo;
+        if (exportedName === "default") {
+            exportInfo = this.startExport(ExportInfo.ExportType.default);
+        } else {
+            exportInfo = this.startExport(ExportInfo.ExportType.named);
+        }
+        const variable = currentScope.set.get(localName);
+        exportInfo.source = source;
+        exportInfo.alias = localName;
+        exportInfo.variables.push(variable);
+
+        this.visit(node);
+        this.finishExport();
+    }
+
+    ExportDefaultDeclaration(node) {
+        const exportInfo = this.startExport(ExportInfo.ExportType.default);
+        const currentScope = this.currentScope();
+        if (currentScope.type !== "module") {
+            throw new Error("use export in a non module scope");
+        }
+        exportInfo.alias = "default";
         if (node.declaration.type === "AssignmentExpression") {
             const decl = node.declaration;
             currentScope.__define(decl.left, new Definition(

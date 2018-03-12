@@ -10,6 +10,7 @@ class ExportInfo {
   constructor(exportType) {
     this.type = exportType;
     this.__variables = [];
+    this.__refs = [];
     this.__source = null;
     this.__alias = null;
   }

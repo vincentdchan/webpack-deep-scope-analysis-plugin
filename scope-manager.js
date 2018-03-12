@@ -52,7 +52,6 @@ class ScopeManager {
         this.__currentScope = null;
         this.__options = options;
         this.__declaredVariables = new WeakMap();
-        this.__exportInfo = [];
     }
 
     __useDirective() {
