@@ -31,7 +31,7 @@ const Syntax = require("estraverse").Syntax;
 const Reference = require("./reference");
 const Variable = require("./variable");
 const Definition = require("./definition").Definition;
-const ExportInfo = require("./export-info");
+const ExportInfo = require("./exportInfo");
 const assert = require("assert");
 
 /**
@@ -601,16 +601,12 @@ class ModuleScope extends Scope {
         const current = this.currentExportInfo;
         this.exports.push(this.currentExportInfo);
         this.currentExportInfo = null;
+        // this.exportVars.set(current.exportName, current);
         return current;
     }
 
     __define(node, def) {
         super.__define(node, def);
-        const varName = node.name;
-        if (this.currentExportInfo) {
-            const variable = this.set.get(varName);
-            this.currentExportInfo.variables.push(variable);
-        }
     }
 
     __referencing(node, assign, writeExpr, maybeImplicitGlobal, partial, init) {

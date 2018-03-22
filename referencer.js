@@ -30,9 +30,9 @@ const Syntax = require("estraverse").Syntax;
 const esrecurse = require("esrecurse");
 const Reference = require("./reference");
 const Variable = require("./variable");
-const PatternVisitor = require("./pattern-visitor");
+const PatternVisitor = require("./patternVisitor");
 const definition = require("./definition");
-const ExportInfo = require("./export-info");
+const ExportInfo = require("./exportInfo");
 const assert = require("assert");
 
 const ParameterDefinition = definition.ParameterDefinition;
@@ -626,6 +626,7 @@ class Referencer extends esrecurse.Visitor {
 
     ExportNamedDeclaration(node) {
         if (node.declaration) {
+            debugger;
             this.startExport(ExportInfo.ExportType.named);
             this.visitExportDeclaration(node, false);
             this.finishExport();
@@ -653,10 +654,8 @@ class Referencer extends esrecurse.Visitor {
         } else {
             exportInfo = this.startExport(ExportInfo.ExportType.named);
         }
-        const variable = currentScope.set.get(localName);
         exportInfo.source = source;
         exportInfo.alias = localName;
-        exportInfo.variables.push(variable);
 
         this.visit(node);
         this.finishExport();

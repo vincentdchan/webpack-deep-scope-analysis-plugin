@@ -1,4 +1,4 @@
-const ScopeManager = require("./scope-manager");
+const ScopeManager = require("./scopeManager");
 
 const assert = require("assert");
 const Referencer = require("./referencer");

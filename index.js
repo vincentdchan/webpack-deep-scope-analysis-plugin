@@ -1,9 +1,9 @@
 const assert = require("assert");
 
-const ScopeManager = require("./scope-manager");
+const ScopeManager = require("./scopeManager");
 const Variable = require("./variable");
-const ModuleManager = require("./module-manager");
-const ModuleInfo = require("./module-info");
+const ModuleManager = require("./moduleManager");
+const ModuleInfo = require("./moduleInfo");
 const Scope = require("./scope").Scope;
 const version = require("./package.json").version;
 
