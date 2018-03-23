@@ -1,11 +1,11 @@
-const assert = require("assert");
+import * as assert from "assert";
 
-const ScopeManager = require("./scopeManager");
-const Variable = require("./variable");
-const ModuleManager = require("./moduleManager");
-const ModuleInfo = require("./moduleInfo");
-const Scope = require("./scope").Scope;
-const version = require("./package.json").version;
+import { ScopeManager } from "./scopeManager";
+import { Variable } from "./variable";
+import { ModuleManager } from "./moduleManager";
+import { ModuleInfo } from "./moduleInfo";
+import { Scope } from "./scope";
+// const version = require("./package.json").version;
 
 const moduleManager = new ModuleManager();
 
@@ -22,10 +22,10 @@ class WebpackDeepScopeAnalysisPlugin {
         moduleInfo = new ModuleInfo(module.resource, module);
 
         module.parser.hooks.program.tap(pluginName, ast => {
-          if (!moduleManager.contains(moduleInfo.name)) {
+          if (!moduleManager.map.has(moduleInfo.name)) {
             moduleInfo.analyze(ast);
             debugger;
-            moduleManager.registerModule(moduleInfo);
+            moduleManager.map.set(moduleInfo.name, moduleInfo);
           }
         });
         
@@ -37,4 +37,4 @@ class WebpackDeepScopeAnalysisPlugin {
 
 }
 
-module.exports = WebpackDeepScopeAnalysisPlugin;
+export = WebpackDeepScopeAnalysisPlugin;

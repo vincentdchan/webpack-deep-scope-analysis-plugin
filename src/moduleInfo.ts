@@ -1,9 +1,13 @@
-const ScopeManager = require("./scopeManager");
+import { ScopeManager } from './scopeManager';
 
-const assert = require("assert");
-const Referencer = require("./referencer");
+import * as assert from 'assert';
+import { Referencer } from './referencer';
 
-class ModuleInfo {
+export class ModuleInfo {
+
+  public __name: string;
+  public __module: any;
+  public __scopeManager: ScopeManager | null;
 
   constructor(name, module) {
     this.__name = name;
@@ -17,14 +21,14 @@ class ModuleInfo {
    */
   defaultOptions() {
     return {
-        optimistic: false,
-        directive: false,
-        nodejsScope: false,
-        impliedStrict: false,
-        sourceType: "module",  // one of ['script', 'module']
-        ecmaVersion: 6,
-        childVisitorKeys: null,
-        fallback: "iteration"
+      optimistic: false,
+      directive: false,
+      nodejsScope: false,
+      impliedStrict: false,
+      sourceType: 'module', // one of ['script', 'module']
+      ecmaVersion: 6,
+      childVisitorKeys: null,
+      fallback: 'iteration',
     };
   }
 
@@ -55,7 +59,10 @@ class ModuleInfo {
 
     referencer.visit(tree);
 
-    assert(scopeManager.__currentScope === null, "currentScope should be null.");
+    assert(
+      scopeManager.__currentScope === null,
+      'currentScope should be null.',
+    );
     this.__scopeManager = scopeManager;
 
     this.analyzeVariables();
@@ -63,7 +70,6 @@ class ModuleInfo {
 
   analyzeVariables() {
     const moduleScope = this.__scopeManager.scopes[1]; // default 1 is module Scope;
-
   }
 
   /**
@@ -73,30 +79,34 @@ class ModuleInfo {
    * @returns {Object} Updated options
    */
   updateDeeply(target, override) {
-
     /**
      * Is hash object
      * @param {Object} value - Test value
      * @returns {boolean} Result
      */
     function isHashObject(value) {
-        return typeof value === "object" && value instanceof Object && !(value instanceof Array) && !(value instanceof RegExp);
+      return (
+        typeof value === 'object' &&
+        value instanceof Object &&
+        !(value instanceof Array) &&
+        !(value instanceof RegExp)
+      );
     }
 
     for (const key in override) {
-        if (override.hasOwnProperty(key)) {
-            const val = override[key];
+      if (override.hasOwnProperty(key)) {
+        const val = override[key];
 
-            if (isHashObject(val)) {
-                if (isHashObject(target[key])) {
-                    updateDeeply(target[key], val);
-                } else {
-                    target[key] = updateDeeply({}, val);
-                }
-            } else {
-                target[key] = val;
-            }
+        if (isHashObject(val)) {
+          if (isHashObject(target[key])) {
+            this.updateDeeply(target[key], val);
+          } else {
+            target[key] = this.updateDeeply({}, val);
+          }
+        } else {
+          target[key] = val;
         }
+      }
     }
     return target;
   }
@@ -112,7 +122,4 @@ class ModuleInfo {
   get scopeManager() {
     return this.__scopeManager;
   }
-
 }
-
-module.exports = ModuleInfo;
