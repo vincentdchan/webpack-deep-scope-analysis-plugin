@@ -1,7 +1,7 @@
 import { Syntax } from 'estraverse';
 
 import { Reference } from './reference';
-import { Variable } from './variable';
+import { Variable, VariableType } from './variable';
 import { Definition } from './definition';
 // const ExportInfo = require('./exportInfo');
 import * as assert from 'assert';
@@ -118,8 +118,8 @@ function registerScope(scopeManager, scope) {
  */
 function shouldBeStatically(def) {
   return (
-    def.type === Variable.ClassName ||
-    (def.type === Variable.Variable && def.parent.kind !== 'var')
+    def.type === VariableType.ClassName ||
+    (def.type === VariableType.Variable && def.parent.kind !== 'var')
   );
 }
 
@@ -400,7 +400,7 @@ export class Scope {
 
     if (def) {
       variable.defs.push(def);
-      if (def.type !== Variable.TDZ) {
+      if (def.type !== VariableType.TDZ) {
         this.__addDeclaredVariablesOfNode(variable, def.node);
         this.__addDeclaredVariablesOfNode(variable, def.parent);
       }
@@ -565,7 +565,7 @@ export class GlobalScope extends Scope {
       this.__defineImplicit(
         info.pattern,
         new Definition(
-          Variable.ImplicitGlobalVariable,
+          VariableType.ImplicitGlobalVariable,
           info.pattern,
           info.node,
           null,
@@ -637,7 +637,7 @@ export class FunctionExpressionNameScope extends Scope {
     super(scopeManager, 'function-expression-name', upperScope, block, false);
     this.__define(
       block.id,
-      new Definition(Variable.FunctionName, block.id, block, null, null, null),
+      new Definition(VariableType.FunctionName, block.id, block, null, null, null),
     );
     this.functionExpressionScope = true;
   }

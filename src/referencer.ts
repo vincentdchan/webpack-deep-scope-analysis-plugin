@@ -1,7 +1,7 @@
 import { Syntax } from 'estraverse';
 import * as esrecurse from 'esrecurse';
 import { Reference } from './reference';
-import { Variable } from './variable';
+import { VariableType } from './variable';
 import { PatternVisitor } from './patternVisitor';
 import { Definition, ParameterDefinition } from './definition';
 import * as assert from 'assert';
@@ -59,7 +59,7 @@ class Importer extends esrecurse.Visitor {
         .__define(
           pattern,
           new Definition(
-            Variable.ImportBinding,
+            VariableType.ImportBinding,
             pattern,
             specifier,
             this.declaration,
@@ -142,7 +142,7 @@ export class Referencer extends esrecurse.Visitor {
     this.scopeManager.__nestTDZScope(node);
     this.visitVariableDeclaration(
       this.currentScope(),
-      Variable.TDZ,
+      VariableType.TDZ,
       iterationNode.left,
       0,
       true,
@@ -156,7 +156,7 @@ export class Referencer extends esrecurse.Visitor {
     this.scopeManager.__nestForScope(node);
     (this as any).visitVariableDeclaration(
       this.currentScope(),
-      Variable.Variable,
+      VariableType.Variable,
       letOrConstDecl,
       0,
     );
@@ -213,7 +213,7 @@ export class Referencer extends esrecurse.Visitor {
       // id is defined in upper scope
       this.currentScope().__define(
         node.id,
-        new Definition(Variable.FunctionName, node.id, node, null, null, null),
+        new Definition(VariableType.FunctionName, node.id, node, null, null, null),
       );
     }
 
@@ -288,7 +288,7 @@ export class Referencer extends esrecurse.Visitor {
     if (node.type === Syntax.ClassDeclaration) {
       this.currentScope().__define(
         node.id,
-        new Definition(Variable.ClassName, node.id, node, null, null, null),
+        new Definition(VariableType.ClassName, node.id, node, null, null, null),
       );
     }
 
@@ -300,7 +300,7 @@ export class Referencer extends esrecurse.Visitor {
     if (node.id) {
       this.currentScope().__define(
         node.id,
-        new Definition(Variable.ClassName, node.id, node),
+        new Definition(VariableType.ClassName, node.id, node),
       );
     }
     (this as any).visit(node.body);
@@ -467,7 +467,7 @@ export class Referencer extends esrecurse.Visitor {
         this.currentScope().__define(
           pattern,
           new Definition(
-            Variable.CatchClause,
+            VariableType.CatchClause,
             node.param,
             node,
             null,
@@ -618,7 +618,7 @@ export class Referencer extends esrecurse.Visitor {
 
       (this as any).visitVariableDeclaration(
         variableTargetScope,
-        Variable.Variable,
+        VariableType.Variable,
         node,
         i,
       );
@@ -744,7 +744,7 @@ export class Referencer extends esrecurse.Visitor {
       currentScope.__define(
         decl.left,
         new Definition(
-          Variable.ExportDefault,
+          VariableType.ExportDefault,
           decl.left.name,
           decl,
           node,

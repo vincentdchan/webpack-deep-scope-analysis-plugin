@@ -2,22 +2,24 @@ import { Scope } from "./scope"
 import { Reference } from './reference'
 import { Definition } from "./definition"
 
+export enum VariableType {
+  CatchClause = 'CatchClause',
+  Parameter = 'Parameter',
+  FunctionName = 'FunctionName',
+  ClassName = 'ClassName',
+  Variable = 'Variable',
+  ImportBinding = 'ImportBinding',
+  TDZ = 'TDZ',
+  ImplicitGlobalVariable = 'ImplicitGlobalVariable',
+  ExportDefault = 'ExportDefault',
+}
+
 /**
  * A Variable represents a locally scoped identifier. These include arguments to
  * functions.
  * @class Variable
  */
 export class Variable {
-
-  public static CatchClause = 'CatchClause';
-  public static Parameter = 'Parameter';
-  public static FunctionName = 'FunctionName';
-  public static ClassName = 'ClassName';
-  public static Variable = 'Variable';
-  public static ImportBinding = 'ImportBinding';
-  public static TDZ = 'TDZ';
-  public static ImplicitGlobalVariable = 'ImplicitGlobalVariable';
-  public static ExportDefault = 'ExportDefault';
 
   public name: string;
   public scope: Scope;

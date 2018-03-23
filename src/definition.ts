@@ -1,9 +1,9 @@
-import { Variable } from './variable';
+import { VariableType } from './variable';
 
 export class Definition {
 
   constructor(
-    public type: string,
+    public type: VariableType,
     public name: any, 
     public node: any,
     public parent: Definition | null = null,
@@ -18,7 +18,7 @@ export class ParameterDefinition extends Definition {
   public rest: boolean;
 
   constructor(name, node, index, rest) {
-    super(Variable.Parameter, name, node, null, index, null);
+    super(VariableType.Parameter, name, node, null, index, null);
 
     /**
      * Whether the parameter definition is a part of a rest parameter.
