@@ -1,11 +1,24 @@
+import * as assert from 'assert';
+import { Variable, VariableType, ModuleInfo } from '../variable';
+import { Reference } from '../reference';
+import { ScopeManager } from '../scopeManager';
+import { Definition } from '../definition';
 import { Syntax } from 'estraverse';
 
-import { Reference } from './reference';
-import { Variable, VariableType, ModuleInfo } from './variable';
-import { Definition } from './definition';
-// const ExportInfo = require('./exportInfo');
-import * as assert from 'assert';
-import { ScopeManager } from './scopeManager';
+export type ScopeType =
+| 'TDZ'
+| 'module'
+| 'block'
+| 'switch'
+| 'function'
+| 'catch'
+| 'with'
+| 'function'
+| 'class'
+| 'global'
+| 'function-expression-name'
+| 'for'
+
 
 /**
  * Test if scope is strict
@@ -94,13 +107,8 @@ function isStrictScope(
   return false;
 }
 
-/**
- * Register scope
- * @param {ScopeManager} scopeManager - scope manager
- * @param {Scope} scope - scope
- * @returns {void}
- */
-function registerScope(scopeManager, scope) {
+
+function registerScope(scopeManager: ScopeManager, scope: Scope): void {
   scopeManager.scopes.push(scope);
 
   const scopes = scopeManager.__nodeToScope.get(scope.block);
@@ -112,31 +120,12 @@ function registerScope(scopeManager, scope) {
   }
 }
 
-/**
- * Should be statically
- * @param {Object} def - def
- * @returns {boolean} should be statically
- */
-function shouldBeStatically(def) {
+function shouldBeStatically(def: Definition): boolean {
   return (
     def.type === VariableType.ClassName ||
     (def.type === VariableType.Variable && def.parent.kind !== 'var')
   );
 }
-
-export type ScopeType =
-| 'TDZ'
-| 'module'
-| 'block'
-| 'switch'
-| 'function'
-| 'catch'
-| 'with'
-| 'function'
-| 'class'
-| 'global'
-| 'function-expression-name'
-| 'for'
 
 export class Scope {
 
@@ -544,300 +533,4 @@ export class Scope {
     }
     return false;
   }
-}
-
-export interface IGlobalScopeImplicit {
-  set: Map<string, Variable>;
-  variables: Variable[];
-  left: Reference[];
-}
-
-export class GlobalScope extends Scope {
-
-  public implicit: IGlobalScopeImplicit;
-
-  constructor(scopeManager, block) {
-    super(scopeManager, 'global', null, block, false);
-
-    this.implicit = {
-      set: new Map(),
-      variables: [],
-      left: [],
-    };
-  }
-
-  __close(scopeManager) {
-    const implicit = [];
-
-    for (let i = 0, iz = this.__left.length; i < iz; ++i) {
-      const ref = this.__left[i];
-
-      if (ref.__maybeImplicitGlobal && !this.set.has(ref.identifier.name)) {
-        implicit.push(ref.__maybeImplicitGlobal);
-      }
-    }
-
-    // create an implicit global variable from assignment expression
-    for (let i = 0, iz = implicit.length; i < iz; ++i) {
-      const info = implicit[i];
-
-      this.__defineImplicit(
-        info.pattern,
-        new Definition(
-          VariableType.ImplicitGlobalVariable,
-          info.pattern,
-          info.node,
-          null,
-          null,
-          null,
-        ),
-      );
-    }
-
-    this.implicit.left = this.__left;
-
-    return super.__close(scopeManager);
-  }
-
-  __defineImplicit(node, def) {
-    if (node && node.type === Syntax.Identifier) {
-      this.__defineGeneric(
-        node.name,
-        this.implicit.set,
-        this.implicit.variables,
-        node,
-        def,
-      );
-    }
-  }
-}
-
-export class ModuleScope extends Scope {
-
-  public exportAllDeclaration: string[] = [];
-  private __isImporting: boolean = false;
-  private __isExporting: boolean = false;
-
-  constructor(
-    scopeManager: ScopeManager,
-    upperScope: Scope,
-    block: any
-  ) {
-    super(scopeManager, 'module', upperScope, block, false);
-  }
-
-  public __define(node, def: Definition): Variable | null {
-    const variable = super.__define(node, def);
-    if (variable) {
-      variable.moduleInfo = new ModuleInfo();
-
-      if (this.__isExporting) {
-        variable.moduleInfo.isExported = true;
-      }
-    }
-    return variable;
-  }
-
-  __referencing(
-    node,
-    assign?,
-    writeExpr?,
-    maybeImplicitGlobal?: boolean,
-    partial?: boolean,
-    init?: boolean
-  ) {
-    const ref = super.__referencing(
-      node,
-      assign,
-      writeExpr,
-      maybeImplicitGlobal,
-      partial,
-      init,
-    );
-    const name = ref.identifier.name;
-    const variable = this.set.get(name);
-    if (this.__isImporting) {
-      variable.moduleInfo.isImported = true;
-    }
-    if (this.__isExporting) {
-      variable.moduleInfo.isExported = true;
-    }
-    return ref;
-  }
-
-  public exportAlias(variableName: string, aliasName: string) {
-    const variable = this.set.get(variableName);
-    variable.moduleInfo.exportAliasName = aliasName;
-  }
-
-  public importSource(variableName: string, sourceName: string) {
-    const variable = this.set.get(variableName);
-    variable.moduleInfo.importSourceName = sourceName;
-  }
-
-  public startImport() {
-    this.__isImporting = true;
-  }
-
-  public endImport() {
-    this.__isImporting = false;
-  }
-
-  public startExport() {
-    this.__isExporting = true;
-  }
-
-  public endExport() {
-    this.__isExporting = false;
-  }
-
-}
-
-export class FunctionExpressionNameScope extends Scope {
-  constructor(scopeManager, upperScope, block) {
-    super(scopeManager, 'function-expression-name', upperScope, block, false);
-    this.__define(
-      block.id,
-      new Definition(VariableType.FunctionName, block.id, block, null, null, null),
-    );
-    this.functionExpressionScope = true;
-  }
-}
-
-export class CatchScope extends Scope {
-
-  constructor(scopeManager, upperScope, block) {
-    super(scopeManager, 'catch', upperScope, block, false);
-  }
-
-}
-
-export class WithScope extends Scope {
-  constructor(scopeManager, upperScope, block) {
-    super(scopeManager, 'with', upperScope, block, false);
-  }
-
-  __close(scopeManager) {
-    if (this.__shouldStaticallyClose(scopeManager)) {
-      return super.__close(scopeManager);
-    }
-
-    for (let i = 0, iz = this.__left.length; i < iz; ++i) {
-      const ref = this.__left[i];
-
-      ref.tainted = true;
-      this.__delegateToUpperScope(ref);
-    }
-    this.__left = null;
-
-    return this.upper;
-  }
-}
-
-export class TDZScope extends Scope {
-
-  constructor(scopeManager, upperScope, block) {
-    super(scopeManager, 'TDZ', upperScope, block, false);
-  }
-
-}
-
-export class BlockScope extends Scope {
-
-  constructor(scopeManager, upperScope, block) {
-    super(scopeManager, 'block', upperScope, block, false);
-  }
-
-}
-
-export class SwitchScope extends Scope {
-  constructor(scopeManager, upperScope, block) {
-    super(scopeManager, 'switch', upperScope, block, false);
-  }
-}
-
-export class FunctionScope extends Scope {
-
-  constructor(scopeManager, upperScope, block, isMethodDefinition) {
-    super(scopeManager, 'function', upperScope, block, isMethodDefinition);
-
-    // section 9.2.13, FunctionDeclarationInstantiation.
-    // NOTE Arrow functions never have an arguments objects.
-    if (this.block.type !== Syntax.ArrowFunctionExpression) {
-      this.__defineArguments();
-    }
-  }
-
-  isArgumentsMaterialized() {
-    // TODO(Constellation)
-    // We can more aggressive on this condition like this.
-    //
-    // function t() {
-    //     // arguments of t is always hidden.
-    //     function arguments() {
-    //     }
-    // }
-    if (this.block.type === Syntax.ArrowFunctionExpression) {
-      return false;
-    }
-
-    if (!this.isStatic()) {
-      return true;
-    }
-
-    const variable = this.set.get('arguments');
-
-    assert(variable, 'Always have arguments variable.');
-    return variable.tainted || variable.references.length !== 0;
-  }
-
-  isThisMaterialized() {
-    if (!this.isStatic()) {
-      return true;
-    }
-    return this.thisFound;
-  }
-
-  __defineArguments() {
-    this.__defineGeneric('arguments', this.set, this.variables, null, null);
-    this.taints.set('arguments', true);
-  }
-
-  // References in default parameters isn't resolved to variables which are in their function body.
-  //     const x = 1
-  //     function f(a = x) { // This `x` is resolved to the `x` in the outer scope.
-  //         const x = 2
-  //         console.log(a)
-  //     }
-  __isValidResolution(ref, variable) {
-    // If `options.nodejsScope` is true, `this.block` becomes a Program node.
-    if (this.block.type === 'Program') {
-      return true;
-    }
-
-    const bodyStart = this.block.body.range[0];
-
-    // It's invalid resolution in the following case:
-    return !(
-      variable.scope === this &&
-      ref.identifier.range[0] < bodyStart && // the reference is in the parameter part.
-      variable.defs.every(d => d.name.range[0] >= bodyStart)
-    ); // the variable is in the body.
-  }
-}
-
-export class ForScope extends Scope {
-
-  constructor(scopeManager, upperScope, block) {
-    super(scopeManager, 'for', upperScope, block, false);
-  }
-  
-}
-
-export class ClassScope extends Scope {
-
-  constructor(scopeManager, upperScope, block) {
-    super(scopeManager, 'class', upperScope, block, false);
-  }
-
 }

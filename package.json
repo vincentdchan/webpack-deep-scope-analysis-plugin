@@ -8,6 +8,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@types/node": "^9.6.0",
     "estraverse": "^4.2.0",
     "typescript": "^2.7.2",
     "webpack": "^4.1.0",

@@ -1,31 +1,31 @@
 {
-    "compilerOptions": {
-      "declaration": true,
-      "module": "commonjs",
-      "moduleResolution": "node",
-      "lib": [
-        "es2015.core",
-        "esnext"
-      ],
-      "target": "es2015",
-      // "strict": true,
-      "outDir": "./lib",
-      "preserveConstEnums": true,
-      "removeComments": true,
-      "inlineSourceMap": true,
-      "typeRoots": [
-        "./node_modules/@types"
-      ],
-      "baseUrl": ".",
-      "paths": {
-        "$utils/*": ["src/utils/*"]
-      }
-    },
-    "include": [
-      "src/**/*.ts",
+  "compilerOptions": {
+    "declaration": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": [
+      "es2015.core",
+      "esnext"
     ],
-    "exclude": [
-      "node_modules",
-      "**/*-spec.ts"
-    ]
-  }
+    "target": "es2015",
+    // "strict": true,
+    "outDir": "./lib",
+    "preserveConstEnums": true,
+    "removeComments": true,
+    "inlineSourceMap": true,
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "$utils/*": ["src/utils/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*-spec.ts"
+  ]
+}

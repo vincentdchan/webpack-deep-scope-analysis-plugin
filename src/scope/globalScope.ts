@@ -1,0 +1,71 @@
+import { Syntax } from 'estraverse';
+import { Scope } from './scope';
+import { Variable, VariableType } from '../variable';
+import { Reference } from '../reference';
+import { Definition } from '../definition';
+
+export interface IGlobalScopeImplicit {
+  set: Map<string, Variable>;
+  variables: Variable[];
+  left: Reference[];
+}
+
+export class GlobalScope extends Scope {
+
+  public implicit: IGlobalScopeImplicit;
+
+  constructor(scopeManager, block) {
+    super(scopeManager, 'global', null, block, false);
+
+    this.implicit = {
+      set: new Map(),
+      variables: [],
+      left: [],
+    };
+  }
+
+  __close(scopeManager) {
+    const implicit = [];
+
+    for (let i = 0, iz = this.__left.length; i < iz; ++i) {
+      const ref = this.__left[i];
+
+      if (ref.__maybeImplicitGlobal && !this.set.has(ref.identifier.name)) {
+        implicit.push(ref.__maybeImplicitGlobal);
+      }
+    }
+
+    // create an implicit global variable from assignment expression
+    for (let i = 0, iz = implicit.length; i < iz; ++i) {
+      const info = implicit[i];
+
+      this.__defineImplicit(
+        info.pattern,
+        new Definition(
+          VariableType.ImplicitGlobalVariable,
+          info.pattern,
+          info.node,
+          null,
+          null,
+          null,
+        ),
+      );
+    }
+
+    this.implicit.left = this.__left;
+
+    return super.__close(scopeManager);
+  }
+
+  __defineImplicit(node, def) {
+    if (node && node.type === Syntax.Identifier) {
+      this.__defineGeneric(
+        node.name,
+        this.implicit.set,
+        this.implicit.variables,
+        node,
+        def,
+      );
+    }
+  }
+}

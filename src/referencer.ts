@@ -92,6 +92,12 @@ class Importer extends esrecurse.Visitor {
     } else {
       this.visitImport(local, node);
     }
+
+    const currentScope = this.referencer.currentScope() as ModuleScope;
+
+    if (node.imported && node.imported.name !== local.name) {
+      currentScope.importSource(local.name, node.imported.name);
+    }
   }
 }
 
