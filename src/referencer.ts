@@ -696,18 +696,11 @@ export class Referencer extends esrecurse.Visitor {
   }
 
   ExportNamedDeclaration(node) {
-    if (node.declaration) {
-      debugger;
-      // this.startExport(ExportInfo.ExportType.named);
-      // this.visitExportDeclaration(node, false);
-      // this.finishExport();
-    } else {
-      const specifiers = node.specifiers;
-      const source = node.source ? node.source.value : null;
-      specifiers.forEach(item => {
-        this.visitExportSpecifier(item, source);
-      });
-    }
+    const specifiers = node.specifiers;
+    const source = node.source ? node.source.value : null;
+    specifiers.forEach(item => {
+      this.visitExportSpecifier(item, source);
+    });
   }
 
   visitExportSpecifier(node, source) {

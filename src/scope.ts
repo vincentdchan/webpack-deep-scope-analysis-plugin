@@ -1,10 +1,11 @@
 import { Syntax } from 'estraverse';
 
 import { Reference } from './reference';
-import { Variable, VariableType } from './variable';
+import { Variable, VariableType, ModuleInfo } from './variable';
 import { Definition } from './definition';
 // const ExportInfo = require('./exportInfo');
 import * as assert from 'assert';
+import { ScopeManager } from './scopeManager';
 
 /**
  * Test if scope is strict
@@ -134,6 +135,8 @@ export type ScopeType =
 | 'function'
 | 'class'
 | 'global'
+| 'function-expression-name'
+| 'for'
 
 export class Scope {
 
@@ -155,7 +158,13 @@ export class Scope {
   public childScopes: Scope[];
   public __declaredVariables: WeakMap<any, Variable[]>;
 
-  constructor(scopeManager, type, upperScope, block, isMethodDefinition) {
+  constructor(
+    scopeManager: ScopeManager,
+    type: ScopeType,
+    upperScope: Scope,
+    block: any,
+    isMethodDefinition: boolean
+  ) {
     /**
      * One of 'TDZ', 'module', 'block', 'switch', 'function', 'catch', 'with', 'function', 'class', 'global'.
      */
@@ -388,8 +397,14 @@ export class Scope {
     }
   }
 
-  __defineGeneric(name, set, variables, node, def) {
-    let variable;
+  protected __defineGeneric(
+    name: string,
+    set: Map<string, Variable>,
+    variables: Variable[],
+    node: any,
+    def?: Definition
+  ) {
+    let variable: Variable;
 
     variable = set.get(name);
     if (!variable) {
@@ -408,12 +423,15 @@ export class Scope {
     if (node) {
       variable.identifiers.push(node);
     }
+
+    return variable;
   }
 
-  __define(node, def) {
+  __define(node: any, def: Definition): Variable | null {
     if (node && node.type === Syntax.Identifier) {
-      this.__defineGeneric(node.name, this.set, this.variables, node, def);
+      return this.__defineGeneric(node.name, this.set, this.variables, node, def);
     }
+    return null;
   }
 
   __referencing(node,
@@ -599,37 +617,14 @@ export class ModuleScope extends Scope {
     super(scopeManager, 'module', upperScope, block, false);
   }
 
-  // startExport(type) {
-  //   this.currentExportInfo = new ExportInfo(type);
-  //   return this.currentExportInfo;
-  // }
+  public __define(node, def): Variable | null {
+    const variable = super.__define(node, def);
+    if (variable) {
+      variable.moduleInfo = new ModuleInfo();
+    }
+    return variable;
+  }
 
-  // finishExport() {
-  //   const current = this.currentExportInfo;
-  //   this.exports.push(this.currentExportInfo);
-  //   this.currentExportInfo = null;
-  //   // this.exportVars.set(current.exportName, current);
-  //   return current;
-  // }
-
-  // __define(node, def) {
-  //   super.__define(node, def);
-  // }
-
-  // __referencing(node, assign, writeExpr, maybeImplicitGlobal, partial, init) {
-  //   super.__referencing(
-  //     node,
-  //     assign,
-  //     writeExpr,
-  //     maybeImplicitGlobal,
-  //     partial,
-  //     init,
-  //   );
-  //   const ref = this.references[this.references.length - 1];
-  //   if (this.currentExportInfo) {
-  //     this.currentExportInfo.__refs.push(ref);
-  //   }
-  // }
 }
 
 export class FunctionExpressionNameScope extends Scope {
