@@ -81,8 +81,12 @@ export class Variable {
 
 export class ModuleInfo {
 
+  public isImported: boolean = false;
+  public isExported: boolean = false;
   public isReassigned: boolean = false;
-  private __includeVariables: Variable[];
+  public importSourceName: string | undefined = undefined;
+  public exportAliasName: string | undefined = undefined;
+  private __includeVariables: Variable[] = [];
 
   get includeVariables() {
     return this.__includeVariables;

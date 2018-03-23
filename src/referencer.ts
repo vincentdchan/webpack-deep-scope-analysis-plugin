@@ -692,15 +692,25 @@ export class Referencer extends esrecurse.Visitor {
   }
 
   ExportDeclaration(node) {
+    const currentScope = this.currentScope() as ModuleScope;
+    currentScope.startExport();
     this.visitExportDeclaration(node, false);
+    currentScope.endExport();
   }
 
   ExportNamedDeclaration(node) {
-    const specifiers = node.specifiers;
-    const source = node.source ? node.source.value : null;
-    specifiers.forEach(item => {
-      this.visitExportSpecifier(item, source);
-    });
+    const currentScope = this.currentScope() as ModuleScope;
+    currentScope.startExport();
+    if (node.declaration) {
+      this.visit(node.declaration);
+    } else {
+      const specifiers = node.specifiers;
+      const source = node.source ? node.source.value : null;
+      specifiers.forEach(item => {
+        this.visitExportSpecifier(item, source);
+      });
+    }
+    currentScope.endExport();
   }
 
   visitExportSpecifier(node, source) {
@@ -712,22 +722,12 @@ export class Referencer extends esrecurse.Visitor {
     const localName = node.local.name;
     const exportedName = node.exported.name;
 
-    // let exportInfo;
-    // if (exportedName === 'default') {
-    //   exportInfo = this.startExport(ExportInfo.ExportType.default);
-    // } else {
-    //   exportInfo = this.startExport(ExportInfo.ExportType.named);
-    // }
-    // exportInfo.source = source;
-    // exportInfo.alias = localName;
-
     this.visit(node);
-    // this.finishExport();
   }
 
   ExportDefaultDeclaration(node) {
-    // const exportInfo = this.startExport(ExportInfo.ExportType.default);
-    const currentScope = this.currentScope();
+    const currentScope = this.currentScope() as ModuleScope;
+    currentScope.startExport();
     if (currentScope.type !== 'module') {
       throw new Error('use export in a non module scope');
     }
@@ -747,34 +747,21 @@ export class Referencer extends esrecurse.Visitor {
       );
     }
     this.visitExportDeclaration(node, true);
-    // this.finishExport();
+    currentScope.endExport();
   }
 
-  // ExportAllDeclaration(node) {
-    // const info = this.startExport(ExportType.all);
-    // info.source = node.source.value;
-    // this.finishExport();
-  // }
-
-  // startExport(exportType: ExportType) {
-  //   const currentScope = this.currentScope() as ModuleScope;
-  //   if (currentScope.type !== 'module') {
-  //     throw new Error('use export in a non module scope');
-  //   }
-  //   return currentScope.startExport(exportType);
-  // }
-
-  // finishExport() {
-  //   const currentScope = this.currentScope() as ModuleScope;
-  //   if (currentScope.type !== 'module') {
-  //     throw new Error('use export in a non module scope');
-  //   }
-
-  //   return currentScope.finishExport();
-  // }
+  ExportAllDeclaration(node) {
+    const currentScope = this.currentScope() as ModuleScope;
+    currentScope.exportAllDeclaration.push(node.source.value);
+  }
 
   ExportSpecifier(node) {
     const local = node.id || node.local;
+
+    if (node.exported && node.exported.name !== local.name) {
+      const currentScope = this.currentScope() as ModuleScope;
+      currentScope.exportAlias(local.name, node.exported.name);
+    }
 
     this.visit(local);
   }
