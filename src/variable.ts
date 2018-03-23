@@ -29,7 +29,7 @@ export class Variable {
   public tainted: boolean;
   public stack: boolean;
 
-  public moduleInfo: ModuleInfo | null;
+  public moduleInfo: VariableModuleInfo | null;
 
   constructor(name: string, scope: Scope) {
     /**
@@ -79,7 +79,7 @@ export class Variable {
 
 }
 
-export class ModuleInfo {
+export class VariableModuleInfo {
 
   public isImported: boolean = false;
   public isExported: boolean = false;

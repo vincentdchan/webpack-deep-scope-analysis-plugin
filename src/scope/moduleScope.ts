@@ -1,7 +1,7 @@
 import { Scope } from './scope';
 import { ScopeManager } from '../scopeManager';
 import { Definition } from '../definition';
-import { Variable, ModuleInfo } from '../variable';
+import { Variable, VariableModuleInfo } from '../variable';
 import { Reference } from '../reference';
 
 export class ModuleScope extends Scope {
@@ -21,7 +21,7 @@ export class ModuleScope extends Scope {
   public __define(node, def: Definition): Variable | null {
     const variable = super.__define(node, def);
     if (variable) {
-      variable.moduleInfo = new ModuleInfo();
+      variable.moduleInfo = new VariableModuleInfo();
 
       if (this.__isExporting) {
         variable.moduleInfo.isExported = true;

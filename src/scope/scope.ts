@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { Variable, VariableType, ModuleInfo } from '../variable';
+import { Variable, VariableType } from '../variable';
 import { Reference } from '../reference';
 import { ScopeManager } from '../scopeManager';
 import { Definition } from '../definition';
