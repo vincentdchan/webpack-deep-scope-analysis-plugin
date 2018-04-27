@@ -44,7 +44,6 @@ class Importer extends esrecurse.Visitor {
 
   public declaration: any;
   public referencer: Referencer;
-  public visit: Function;
 
   constructor(declaration, referencer: Referencer) {
     super(null, referencer.options);
@@ -108,8 +107,6 @@ export class Referencer extends esrecurse.Visitor {
   public scopeManager: ScopeManager;
   public parent: Referencer;
   public isInnerMethodDefinition: boolean;
-
-  public visit: Function;
 
   constructor(options, scopeManager) {
     super(null, options);

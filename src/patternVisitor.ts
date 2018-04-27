@@ -31,9 +31,6 @@ export class PatternVisitor extends esrecurse.Visitor {
   public rightHandNodes: any[];
   public restElements: any[];
 
-  // inherit
-  public visit: Function;
-
   constructor(options, rootPattern, callback) {
     super(null, options);
     this.rootPattern = rootPattern;
