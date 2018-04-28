@@ -1,9 +1,15 @@
 import { Scope } from "./scope";
 import { Variable } from "./variable";
+import * as ESTree from 'estree';
 
 const READ = 0x1;
 const WRITE = 0x2;
 const RW = READ | WRITE;
+
+export interface ImplicitGlobal {
+  pattern: ESTree.Identifier,
+  node: ESTree.Node,
+}
 
 /**
  * A Reference represents a single occurrence of an identifier in code.
@@ -14,35 +20,18 @@ export class Reference {
   public static WRITE = WRITE;
   public static RW = RW;
 
-  public identifier: any;
-  public from: Scope;
-  public tainted: boolean;
+  public tainted: boolean = false;
   public resolved: Variable | null;
-  public writeExpr: any;
-  public partial: boolean | undefined;
-  public init: boolean | undefined;
-  public __maybeImplicitGlobal: boolean;
-  private flag: number;
 
   constructor(
-    ident,
-    scope,
-    flag,
-    writeExpr,
-    maybeImplicitGlobal: boolean = false,
-    partial?: boolean,
-    init?: boolean,
+    public readonly identifier: ESTree.Identifier,
+    public readonly from: Scope,
+    public readonly flag: number,
+    public readonly writeExpr?: ESTree.Expression,
+    public readonly maybeImplicitGlobal: ImplicitGlobal | null = null,
+    public readonly partial?: boolean,
+    public readonly init?: boolean,
   ) {
-    /**
-     * Identifier syntax node.
-     */
-    this.identifier = ident;
-
-    /**
-     * Reference to the enclosing Scope.
-     */
-    this.from = scope;
-
     /**
      * Whether the reference comes from a dynamic scope (such as 'eval',
      * 'with', etc.), and may be trapped by dynamic scopes.
@@ -74,7 +63,6 @@ export class Reference {
        */
       this.init = init;
     }
-    this.__maybeImplicitGlobal = maybeImplicitGlobal;
   }
 
   /**

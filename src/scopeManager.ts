@@ -14,6 +14,7 @@ import {
 } from './scope';
 import { Variable } from './variable';
 import * as assert from 'assert';
+import * as ESTree from 'estree';
 
 export class ScopeManager {
   public scopes: Scope[];
@@ -23,7 +24,7 @@ export class ScopeManager {
   public __options: any;
   public __declaredVariables: WeakMap<any, Variable[]>;
 
-  constructor(options) {
+  constructor(options: any) {
     this.scopes = [];
     this.globalScope = null;
     this.__nodeToScope = new WeakMap();
@@ -61,38 +62,16 @@ export class ScopeManager {
   }
 
   // Returns appropriate scope for this node.
-  __get(node) {
+  __get(node: ESTree.Node) {
     return this.__nodeToScope.get(node);
   }
 
-  /**
-   * Get variables that are declared by the node.
-   *
-   * "are declared by the node" means the node is same as `Variable.defs[].node` or `Variable.defs[].parent`.
-   * If the node declares nothing, this method returns an empty array.
-   * CAUTION: This API is experimental. See https://github.com/estools/escope/pull/69 for more details.
-   *
-   * @param {Espree.Node} node - a node to get.
-   * @returns {Variable[]} variables that declared by the node.
-   */
-  getDeclaredVariables(node) {
+  getDeclaredVariables(node: ESTree.Node[]): Variable[] {
     return this.__declaredVariables.get(node) || [];
   }
 
-  /**
-   * acquire scope from node.
-   * @method ScopeManager#acquire
-   * @param {Espree.Node} node - node for the acquired scope.
-   * @param {boolean=} inner - look up the most inner scope, default value is false.
-   * @returns {Scope?} Scope from node
-   */
-  acquire(node, inner) {
-    /**
-     * predicate
-     * @param {Scope} testScope - scope to test
-     * @returns {boolean} predicate
-     */
-    function predicate(testScope) {
+  acquire(node: ESTree.Node, inner: boolean): Scope | null {
+    function predicate(testScope: Scope): boolean {
       if (testScope.type === 'function' && testScope.functionExpressionScope) {
         return false;
       }
@@ -135,24 +114,11 @@ export class ScopeManager {
     return null;
   }
 
-  /**
-   * acquire all scopes from node.
-   * @method ScopeManager#acquireAll
-   * @param {Espree.Node} node - node for the acquired scope.
-   * @returns {Scopes?} Scope array
-   */
-  acquireAll(node) {
+  acquireAll(node: ESTree.Node): Scope[] | undefined {
     return this.__get(node);
   }
 
-  /**
-   * release the node.
-   * @method ScopeManager#release
-   * @param {Espree.Node} node - releasing node.
-   * @param {boolean=} inner - look up the most inner scope, default value is false.
-   * @returns {Scope?} upper scope for the node.
-   */
-  release(node, inner) {
+  release(node: ESTree.Node, inner: boolean): Scope | null {
     const scopes = this.__get(node);
 
     if (scopes && scopes.length) {
@@ -170,7 +136,7 @@ export class ScopeManager {
 
   detach() {} // eslint-disable-line class-methods-use-this
 
-  __nestScope(scope) {
+  __nestScope(scope: Scope) {
     if (scope instanceof GlobalScope) {
       assert(this.__currentScope === null);
       this.globalScope = scope;
@@ -179,51 +145,54 @@ export class ScopeManager {
     return scope;
   }
 
-  __nestGlobalScope(node) {
+  __nestGlobalScope(node: ESTree.Node) {
     return this.__nestScope(new GlobalScope(this, node));
   }
 
-  __nestBlockScope(node) {
-    return this.__nestScope(new BlockScope(this, this.__currentScope, node));
+  __nestBlockScope(node: ESTree.Node) {
+    return this.__nestScope(new BlockScope(this, this.__currentScope!, node));
   }
 
-  __nestFunctionScope(node, isMethodDefinition) {
+  __nestFunctionScope(
+    node: ESTree.Node,
+    isMethodDefinition: boolean
+  ) {
     return this.__nestScope(
-      new FunctionScope(this, this.__currentScope, node, isMethodDefinition),
+      new FunctionScope(this, this.__currentScope!, node, isMethodDefinition),
     );
   }
 
-  __nestForScope(node) {
-    return this.__nestScope(new ForScope(this, this.__currentScope, node));
+  __nestForScope(node: ESTree.Node) {
+    return this.__nestScope(new ForScope(this, this.__currentScope!, node));
   }
 
-  __nestCatchScope(node) {
-    return this.__nestScope(new CatchScope(this, this.__currentScope, node));
+  __nestCatchScope(node: ESTree.Node) {
+    return this.__nestScope(new CatchScope(this, this.__currentScope!, node));
   }
 
-  __nestWithScope(node) {
-    return this.__nestScope(new WithScope(this, this.__currentScope, node));
+  __nestWithScope(node: ESTree.Node) {
+    return this.__nestScope(new WithScope(this, this.__currentScope!, node));
   }
 
-  __nestClassScope(node) {
-    return this.__nestScope(new ClassScope(this, this.__currentScope, node));
+  __nestClassScope(node: ESTree.Node) {
+    return this.__nestScope(new ClassScope(this, this.__currentScope!, node));
   }
 
-  __nestSwitchScope(node) {
-    return this.__nestScope(new SwitchScope(this, this.__currentScope, node));
+  __nestSwitchScope(node: ESTree.Node) {
+    return this.__nestScope(new SwitchScope(this, this.__currentScope!, node));
   }
 
-  __nestModuleScope(node) {
-    return this.__nestScope(new ModuleScope(this, this.__currentScope, node));
+  __nestModuleScope(node: ESTree.Node) {
+    return this.__nestScope(new ModuleScope(this, this.__currentScope!, node));
   }
 
-  __nestTDZScope(node) {
-    return this.__nestScope(new TDZScope(this, this.__currentScope, node));
+  __nestTDZScope(node: ESTree.Node) {
+    return this.__nestScope(new TDZScope(this, this.__currentScope!, node));
   }
 
-  __nestFunctionExpressionNameScope(node) {
+  __nestFunctionExpressionNameScope(node: ESTree.Node) {
     return this.__nestScope(
-      new FunctionExpressionNameScope(this, this.__currentScope, node),
+      new FunctionExpressionNameScope(this, this.__currentScope!, node),
     );
   }
 

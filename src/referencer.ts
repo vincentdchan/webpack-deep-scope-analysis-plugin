@@ -1,13 +1,13 @@
 import { Syntax } from 'estraverse';
 import * as esrecurse from 'esrecurse';
-import { Reference } from './reference';
+import { Reference, ImplicitGlobal } from './reference';
 import { VariableType } from './variable';
-import { PatternVisitor } from './patternVisitor';
+import { PatternVisitor, PatternVisitorCallback, AssignmentType } from './patternVisitor';
 import { Definition, ParameterDefinition } from './definition';
 import * as assert from 'assert';
 import { ScopeManager } from './scopeManager';
 import { Scope, ModuleScope } from './scope';
-import { ExportInfo, ExportType } from './exportInfo';
+import * as ESTree from 'estree';
 
 /**
  * Traverse identifier in pattern
@@ -18,10 +18,10 @@ import { ExportInfo, ExportType } from './exportInfo';
  * @returns {void}
  */
 function traverseIdentifierInPattern(
-  options,
-  rootPattern,
-  referencer,
-  callback,
+  options: any,
+  rootPattern: ESTree.Node,
+  referencer: Referencer | null,
+  callback: PatternVisitorCallback,
 ) {
   // Call the callback at left hand identifier nodes, and Collect right hand nodes.
   const visitor = new PatternVisitor(options, rootPattern, callback);
@@ -34,6 +34,11 @@ function traverseIdentifierInPattern(
   }
 }
 
+type ImportSpecifierNode =
+| ESTree.ImportSpecifier
+| ESTree.ImportNamespaceSpecifier
+| ESTree.ImportDefaultSpecifier
+
 // Importing ImportDeclaration.
 // http://people.mozilla.org/~jorendorff/es6-draft.html#sec-moduledeclarationinstantiation
 // https://github.com/estree/estree/blob/master/es6.md#importdeclaration
@@ -42,19 +47,19 @@ function traverseIdentifierInPattern(
 
 class Importer extends esrecurse.Visitor {
 
-  public declaration: any;
-  public referencer: Referencer;
-
-  constructor(declaration, referencer: Referencer) {
-    super(null, referencer.options);
+  constructor(
+    public readonly declaration: ESTree.ImportDeclaration,
+    public readonly referencer: Referencer
+  ) {
+    super(undefined, referencer.options);
     this.declaration = declaration;
     this.referencer = referencer;
   }
 
-  visitImport(id, specifier) {
-    (this.referencer as any).visitPattern(id, pattern => {
+  visitImport(id: ESTree.Identifier, specifier: ImportSpecifierNode) {
+    this.referencer.visitPattern(id, undefined, pattern => {
       this.referencer
-        .currentScope()
+        .currentScope!
         .__define(
           pattern,
           new Definition(
@@ -62,42 +67,35 @@ class Importer extends esrecurse.Visitor {
             pattern,
             specifier,
             this.declaration,
-            null,
-            null,
           ),
         );
     });
   }
 
-  ImportNamespaceSpecifier(node) {
-    const local = node.local || node.id;
+  ImportNamespaceSpecifier(node: ESTree.ImportNamespaceSpecifier) {
+    const local = node.local;
 
     if (local) {
       this.visitImport(local, node);
     }
   }
 
-  ImportDefaultSpecifier(node) {
-    const local = node.local || node.id;
+  ImportDefaultSpecifier(node: ESTree.ImportDefaultSpecifier) {
+    const local = node.local;
 
     this.visitImport(local, node);
   }
 
-  ImportSpecifier(node) {
-    const local = node.local || node.id;
+  ImportSpecifier(node: ImportSpecifierNode) {
+    const local = node.local;
 
-    if (node.name) {
-      this.visitImport(node.name, node);
+    if ((node as any).name) {
+        this.visitImport((node as any).name, node);
     } else {
-      this.visitImport(local, node);
-    }
-
-    const currentScope = this.referencer.currentScope() as ModuleScope;
-
-    if (node.imported && node.imported.name !== local.name) {
-      currentScope.importSource(local.name, node.imported.name);
+        this.visitImport(local, node);
     }
   }
+
 }
 
 // Referencing variables and creating bindings.
@@ -105,78 +103,86 @@ export class Referencer extends esrecurse.Visitor {
 
   public options: any;
   public scopeManager: ScopeManager;
-  public parent: Referencer;
+  public parent: Referencer | null;
   public isInnerMethodDefinition: boolean;
 
-  constructor(options, scopeManager) {
-    super(null, options);
+  constructor(options: any, scopeManager: ScopeManager) {
+    super(undefined, options);
     this.options = options;
     this.scopeManager = scopeManager;
     this.parent = null;
     this.isInnerMethodDefinition = false;
   }
 
-  currentScope() {
+  get currentScope() {
     return this.scopeManager.__currentScope;
   }
 
-  close(node) {
-    while (this.currentScope() && node === this.currentScope().block) {
-      this.scopeManager.__currentScope = this.currentScope().__close(
+  close(node: ESTree.Node) {
+    while (this.currentScope && node === this.currentScope.block) {
+      this.scopeManager.__currentScope = this.currentScope.__close(
         this.scopeManager,
       );
     }
   }
 
-  pushInnerMethodDefinition(isInnerMethodDefinition) {
+  pushInnerMethodDefinition(isInnerMethodDefinition: boolean) {
     const previous = this.isInnerMethodDefinition;
 
     this.isInnerMethodDefinition = isInnerMethodDefinition;
     return previous;
   }
 
-  popInnerMethodDefinition(isInnerMethodDefinition) {
+  popInnerMethodDefinition(isInnerMethodDefinition: boolean) {
     this.isInnerMethodDefinition = isInnerMethodDefinition;
   }
 
-  materializeTDZScope(node, iterationNode) {
+  materializeTDZScope(
+    node: ESTree.Node,
+    iterationNode: ESTree.ForOfStatement | ESTree.ForInStatement
+  ) {
     // http://people.mozilla.org/~jorendorff/es6-draft.html#sec-runtime-semantics-forin-div-ofexpressionevaluation-abstract-operation
     // TDZ scope hides the declaration's names.
     this.scopeManager.__nestTDZScope(node);
     this.visitVariableDeclaration(
-      this.currentScope(),
+      this.currentScope!,
       VariableType.TDZ,
-      iterationNode.left,
+      iterationNode.left as ESTree.VariableDeclaration, // it must be
       0,
       true,
     );
   }
 
-  materializeIterationScope(node) {
+  materializeIterationScope(node: ESTree.ForInStatement | ESTree.ForOfStatement) {
     // Generate iteration scope for upper ForIn/ForOf Statements.
-    const letOrConstDecl = node.left;
+    const letOrConstDecl = node.left as ESTree.VariableDeclaration;
 
     this.scopeManager.__nestForScope(node);
-    (this as any).visitVariableDeclaration(
-      this.currentScope(),
+    this.visitVariableDeclaration(
+      this.currentScope!,
       VariableType.Variable,
       letOrConstDecl,
       0,
     );
-    (this as any).visitPattern(letOrConstDecl.declarations[0].id, pattern => {
-      this.currentScope().__referencing(
+    this.visitPattern(letOrConstDecl.declarations[0].id, undefined, pattern => {
+      this.currentScope!.__referencing(
         pattern,
         Reference.WRITE,
         node.right,
-        null,
+        undefined,
         true,
         true,
       );
     });
   }
 
-  referencingDefaultValue(pattern, assignments, maybeImplicitGlobal, init) {
-    const scope = this.currentScope();
+  referencingDefaultValue(
+    pattern: ESTree.Pattern,
+    assignments: AssignmentType[],
+    maybeImplicitGlobal?: ImplicitGlobal,
+    init?: boolean,
+  ) {
+    const scope = this.currentScope!;
 
     assignments.forEach(assignment => {
       scope.__referencing(
@@ -190,11 +196,11 @@ export class Referencer extends esrecurse.Visitor {
     });
   }
 
-  visitPattern(node, options: any, callback?) {
-    if (typeof options === 'function') {
-      callback = options;
-      options = { processRightHandNodes: false };
-    }
+  visitPattern(
+    node: ESTree.Pattern,
+    options = { processRightHandNodes: false },
+    callback: PatternVisitorCallback
+  ) {
     traverseIdentifierInPattern(
       this.options,
       node,
@@ -203,8 +209,8 @@ export class Referencer extends esrecurse.Visitor {
     );
   }
 
-  visitFunction(node) {
-    let i, iz;
+  visitFunction(node: ESTree.Function) {
+    let i: number, iz: number;
 
     // FunctionDeclaration name is defined in upper scope
     // NOTE: Not referring variableScope. It is intended.
@@ -214,9 +220,9 @@ export class Referencer extends esrecurse.Visitor {
 
     if (node.type === Syntax.FunctionDeclaration) {
       // id is defined in upper scope
-      this.currentScope().__define(
+      this.currentScope!.__define(
         node.id,
-        new Definition(VariableType.FunctionName, node.id, node, null, null, null),
+        new Definition(VariableType.FunctionName, node.id!, node),
       );
     }
 
@@ -237,15 +243,15 @@ export class Referencer extends esrecurse.Visitor {
      * @param {Object} info - info
      * @returns {void}
      */
-    function visitPatternCallback(pattern, info) {
+    function visitPatternCallback(pattern: ESTree.Identifier, info: any) {
       that
-        .currentScope()
+        .currentScope!
         .__define(
           pattern,
           new ParameterDefinition(pattern, node, i, info.rest),
         );
 
-      that.referencingDefaultValue(pattern, info.assignments, null, true);
+      that.referencingDefaultValue(pattern, info.assignments, undefined, true);
     }
 
     // Process parameter declarations.
@@ -254,22 +260,6 @@ export class Referencer extends esrecurse.Visitor {
         node.params[i],
         { processRightHandNodes: true },
         visitPatternCallback,
-      );
-    }
-
-    // if there's a rest argument, add that
-    if (node.rest) {
-      this.visitPattern(
-        {
-          type: 'RestElement',
-          argument: node.rest,
-        },
-        pattern => {
-          this.currentScope().__define(
-            pattern,
-            new ParameterDefinition(pattern, node, node.params.length, true),
-          );
-        },
       );
     }
 
@@ -287,32 +277,32 @@ export class Referencer extends esrecurse.Visitor {
     this.close(node);
   }
 
-  visitClass(node) {
+  visitClass(node: ESTree.Class) {
     if (node.type === Syntax.ClassDeclaration) {
-      this.currentScope().__define(
-        node.id,
-        new Definition(VariableType.ClassName, node.id, node, null, null, null),
-      );
-    }
-
-    // FIXME: Maybe consider TDZ.
-    (this as any).visit(node.superClass);
-
-    this.scopeManager.__nestClassScope(node);
-
-    if (node.id) {
-      this.currentScope().__define(
+      this.currentScope!.__define(
         node.id,
         new Definition(VariableType.ClassName, node.id, node),
       );
     }
-    (this as any).visit(node.body);
+
+    // FIXME: Maybe consider TDZ.
+    this.visit(node.superClass!);
+
+    this.scopeManager.__nestClassScope(node);
+
+    if (node.id) {
+      this.currentScope!.__define(
+        node.id,
+        new Definition(VariableType.ClassName, node.id, node),
+      );
+    }
+    this.visit(node.body);
 
     this.close(node);
   }
 
-  visitProperty(node) {
-    let previous;
+  visitProperty(node: any) {
+    let previous: boolean;
 
     if (node.computed) {
       (this as any).visit(node.key);
@@ -323,13 +313,13 @@ export class Referencer extends esrecurse.Visitor {
     if (isMethodDefinition) {
       previous = this.pushInnerMethodDefinition(true);
     }
-    (this as any).visit(node.value);
+    this.visit(node.value);
     if (isMethodDefinition) {
-      this.popInnerMethodDefinition(previous);
+      this.popInnerMethodDefinition(previous!);
     }
   }
 
-  visitForIn(node) {
+  visitForIn(node: ESTree.ForInStatement | ESTree.ForOfStatement) {
     if (
       node.left.type === Syntax.VariableDeclaration &&
       node.left.kind !== 'var'
@@ -344,24 +334,27 @@ export class Referencer extends esrecurse.Visitor {
     } else {
       if (node.left.type === Syntax.VariableDeclaration) {
         this.visit(node.left);
-        this.visitPattern(node.left.declarations[0].id, pattern => {
-          this.currentScope().__referencing(
+        this.visitPattern(
+          node.left.declarations[0].id,
+          undefined,
+          pattern => {
+          this.currentScope!.__referencing(
             pattern,
             Reference.WRITE,
             node.right,
-            null,
+            undefined,
             true,
             true,
           );
         });
       } else {
         this.visitPattern(
-          node.left,
+          node.left as ESTree.Pattern,
           { processRightHandNodes: true },
-          (pattern, info) => {
-            let maybeImplicitGlobal = null;
+          (pattern: ESTree.Identifier, info: any) => {
+            let maybeImplicitGlobal: ImplicitGlobal | undefined;
 
-            if (!this.currentScope().isStrict) {
+            if (!this.currentScope!.isStrict) {
               maybeImplicitGlobal = {
                 pattern,
                 node,
@@ -373,7 +366,7 @@ export class Referencer extends esrecurse.Visitor {
               maybeImplicitGlobal,
               false,
             );
-            this.currentScope().__referencing(
+            this.currentScope!.__referencing(
               pattern,
               Reference.WRITE,
               node.right,
@@ -389,7 +382,13 @@ export class Referencer extends esrecurse.Visitor {
     }
   }
 
-  visitVariableDeclaration(variableTargetScope, type, node, index, fromTDZ) {
+  visitVariableDeclaration(
+    variableTargetScope: Scope,
+    type: VariableType,
+    node: ESTree.VariableDeclaration,
+    index: number,
+    fromTDZ?: boolean
+  ) {
     // If this was called to initialize a TDZ scope, this needs to make definitions, but doesn't make references.
     const decl = node.declarations[index];
     const init = decl.init;
@@ -404,14 +403,14 @@ export class Referencer extends esrecurse.Visitor {
         );
 
         if (!fromTDZ) {
-          this.referencingDefaultValue(pattern, info.assignments, null, true);
+          this.referencingDefaultValue(pattern, info.assignments, undefined, true);
         }
         if (init) {
-          this.currentScope().__referencing(
+          this.currentScope!.__referencing(
             pattern,
             Reference.WRITE,
             init,
-            null,
+            undefined,
             !info.topLevel,
             true,
           );
@@ -420,16 +419,16 @@ export class Referencer extends esrecurse.Visitor {
     );
   }
 
-  AssignmentExpression(node) {
+  AssignmentExpression(node: ESTree.AssignmentExpression) {
     if (PatternVisitor.isPattern(node.left)) {
       if (node.operator === '=') {
         this.visitPattern(
           node.left,
           { processRightHandNodes: true },
           (pattern, info) => {
-            let maybeImplicitGlobal = null;
+            let maybeImplicitGlobal;
 
-            if (!this.currentScope().isStrict) {
+            if (!this.currentScope!.isStrict) {
               maybeImplicitGlobal = {
                 pattern,
                 node,
@@ -441,7 +440,7 @@ export class Referencer extends esrecurse.Visitor {
               maybeImplicitGlobal,
               false,
             );
-            this.currentScope().__referencing(
+            this.currentScope!.__referencing(
               pattern,
               Reference.WRITE,
               node.right,
@@ -452,7 +451,7 @@ export class Referencer extends esrecurse.Visitor {
           },
         );
       } else {
-        this.currentScope().__referencing(node.left, Reference.RW, node.right);
+        this.currentScope!.__referencing(node.left, Reference.RW, node.right);
       }
     } else {
       this.visit(node.left);
@@ -460,25 +459,22 @@ export class Referencer extends esrecurse.Visitor {
     this.visit(node.right);
   }
 
-  CatchClause(node) {
+  CatchClause(node: ESTree.CatchClause) {
     this.scopeManager.__nestCatchScope(node);
 
     this.visitPattern(
       node.param,
       { processRightHandNodes: true },
       (pattern, info) => {
-        this.currentScope().__define(
+        this.currentScope!.__define(
           pattern,
           new Definition(
             VariableType.CatchClause,
             node.param,
             node,
-            null,
-            null,
-            null,
           ),
         );
-        this.referencingDefaultValue(pattern, info.assignments, null, true);
+        this.referencingDefaultValue(pattern, info.assignments, undefined, true);
       },
     );
     this.visit(node.body);
@@ -486,12 +482,12 @@ export class Referencer extends esrecurse.Visitor {
     this.close(node);
   }
 
-  Program(node) {
+  Program(node: ESTree.Program) {
     this.scopeManager.__nestGlobalScope(node);
 
     if (this.scopeManager.__isNodejsScope()) {
       // Force strictness of GlobalScope to false when using node.js scope.
-      this.currentScope().isStrict = false;
+      this.currentScope!.isStrict = false;
       this.scopeManager.__nestFunctionScope(node, false);
     }
 
@@ -503,37 +499,37 @@ export class Referencer extends esrecurse.Visitor {
       this.scopeManager.isStrictModeSupported() &&
       this.scopeManager.isImpliedStrict()
     ) {
-      this.currentScope().isStrict = true;
+      this.currentScope!.isStrict = true;
     }
 
     (this as any).visitChildren(node);
     this.close(node);
   }
 
-  Identifier(node) {
-    this.currentScope().__referencing(node);
+  Identifier(node: ESTree.Identifier) {
+    this.currentScope!.__referencing(node);
   }
 
-  UpdateExpression(node) {
+  UpdateExpression(node: ESTree.UpdateExpression) {
     if (PatternVisitor.isPattern(node.argument)) {
-      this.currentScope().__referencing(node.argument, Reference.RW, null);
+      this.currentScope!.__referencing(node.argument, Reference.RW);
     } else {
       (this as any).visitChildren(node);
     }
   }
 
-  MemberExpression(node) {
+  MemberExpression(node: ESTree.MemberExpression) {
     this.visit(node.object);
     if (node.computed) {
       this.visit(node.property);
     }
   }
 
-  Property(node) {
+  Property(node: ESTree.Property) {
     this.visitProperty(node);
   }
 
-  MethodDefinition(node) {
+  MethodDefinition(node: ESTree.MethodDefinition) {
     this.visitProperty(node);
   }
 
@@ -541,11 +537,11 @@ export class Referencer extends esrecurse.Visitor {
 
   ContinueStatement() {} // eslint-disable-line class-methods-use-this
 
-  LabeledStatement(node) {
+  LabeledStatement(node: ESTree.LabeledStatement) {
     this.visit(node.body);
   }
 
-  ForStatement(node) {
+  ForStatement(node: ESTree.ForStatement) {
     // Create ForStatement declaration.
     // NOTE: In ES6, ForStatement dynamically generates
     // per iteration environment. However, escope is
@@ -563,15 +559,15 @@ export class Referencer extends esrecurse.Visitor {
     this.close(node);
   }
 
-  ClassExpression(node) {
+  ClassExpression(node: ESTree.ClassExpression) {
     this.visitClass(node);
   }
 
-  ClassDeclaration(node) {
+  ClassDeclaration(node: ESTree.ClassDeclaration) {
     this.visitClass(node);
   }
 
-  CallExpression(node) {
+  CallExpression(node: ESTree.CallExpression) {
     // Check this is direct call to eval
     if (
       !this.scopeManager.__ignoreEval() &&
@@ -580,12 +576,12 @@ export class Referencer extends esrecurse.Visitor {
     ) {
       // NOTE: This should be `variableScope`. Since direct eval call always creates Lexical environment and
       // let / const should be enclosed into it. Only VariableDeclaration affects on the caller's environment.
-      this.currentScope().variableScope.__detectEval();
+      this.currentScope!.variableScope.__detectEval();
     }
     (this as any).visitChildren(node);
   }
 
-  BlockStatement(node) {
+  BlockStatement(node: ESTree.BlockStatement) {
     if (this.scopeManager.__isES6()) {
       this.scopeManager.__nestBlockScope(node);
     }
@@ -596,10 +592,10 @@ export class Referencer extends esrecurse.Visitor {
   }
 
   ThisExpression() {
-    this.currentScope().variableScope.__detectThis();
+    this.currentScope!.variableScope.__detectThis();
   }
 
-  WithStatement(node) {
+  WithStatement(node: ESTree.WithStatement) {
     this.visit(node.object);
 
     // Then nest scope for WithStatement.
@@ -610,11 +606,11 @@ export class Referencer extends esrecurse.Visitor {
     this.close(node);
   }
 
-  VariableDeclaration(node) {
+  VariableDeclaration(node: ESTree.VariableDeclaration) {
     const variableTargetScope =
       node.kind === 'var'
-        ? this.currentScope().variableScope
-        : this.currentScope();
+        ? this.currentScope!.variableScope
+        : this.currentScope!;
 
     for (let i = 0, iz = node.declarations.length; i < iz; ++i) {
       const decl = node.declarations[i];
@@ -632,7 +628,7 @@ export class Referencer extends esrecurse.Visitor {
   }
 
   // sec 13.11.8
-  SwitchStatement(node) {
+  SwitchStatement(node: ESTree.SwitchStatement) {
     this.visit(node.discriminant);
 
     if (this.scopeManager.__isES6()) {
@@ -646,27 +642,27 @@ export class Referencer extends esrecurse.Visitor {
     this.close(node);
   }
 
-  FunctionDeclaration(node) {
+  FunctionDeclaration(node: ESTree.FunctionDeclaration) {
     this.visitFunction(node);
   }
 
-  FunctionExpression(node) {
+  FunctionExpression(node: ESTree.FunctionExpression) {
     this.visitFunction(node);
   }
 
-  ForOfStatement(node) {
+  ForOfStatement(node: ESTree.ForOfStatement) {
     this.visitForIn(node);
   }
 
-  ForInStatement(node) {
+  ForInStatement(node: ESTree.ForInStatement) {
     this.visitForIn(node);
   }
 
-  ArrowFunctionExpression(node) {
+  ArrowFunctionExpression(node: ESTree.ArrowFunctionExpression) {
     this.visitFunction(node);
   }
 
-  ImportDeclaration(node) {
+  ImportDeclaration(node: ESTree.ImportDeclaration) {
     assert(
       this.scopeManager.__isES6() && this.scopeManager.isModule(),
       'ImportDeclaration should appear when the mode is ES6 and in the module context.',
@@ -677,12 +673,7 @@ export class Referencer extends esrecurse.Visitor {
     importer.visit(node);
   }
 
-  visitExportDeclaration(node, isDefault) {
-    const moduleScope = this.scopeManager.__currentScope;
-    if (moduleScope.type !== 'module') {
-      throw new Error('Export declaration must be used in module scope');
-    }
-
+  visitExportDeclaration(node: any) {
     if (node.source) {
       return;
     }
@@ -694,76 +685,54 @@ export class Referencer extends esrecurse.Visitor {
     (this as any).visitChildren(node);
   }
 
-  ExportDeclaration(node) {
-    const currentScope = this.currentScope() as ModuleScope;
+  // ExportDeclaration(node: ESTree.ExportDe) {
+  //   const currentScope = this.currentScope() as ModuleScope;
+  //   currentScope.startExport();
+  //   this.visitExportDeclaration(node, false);
+  //   currentScope.endExport();
+  // }
+
+  ExportNamedDeclaration(node: ESTree.ExportNamedDeclaration) {
+    const currentScope = this.currentScope as ModuleScope;
     currentScope.startExport();
-    this.visitExportDeclaration(node, false);
+    this.visitExportDeclaration(node);
     currentScope.endExport();
   }
 
-  ExportNamedDeclaration(node) {
-    const currentScope = this.currentScope() as ModuleScope;
-    currentScope.startExport();
-    if (node.declaration) {
-      this.visit(node.declaration);
-    } else {
-      const specifiers = node.specifiers;
-      const source = node.source ? node.source.value : null;
-      specifiers.forEach(item => {
-        this.visitExportSpecifier(item, source);
-      });
-    }
-    currentScope.endExport();
+  // ExportDefaultDeclaration(node: ESTree.ExportDefaultDeclaration) {
+  //   const currentScope = this.currentScope as ModuleScope;
+  //   currentScope.startExport();
+  //   if (currentScope.type !== 'module') {
+  //     throw new Error('use export in a non module scope');
+  //   }
+  //   // exportInfo.alias = 'default';
+  //   if (node.declaration.type === 'AssignmentExpression') {
+  //     const decl = node.declaration;
+  //     currentScope.__define(
+  //       decl.left,
+  //       new Definition(
+  //         VariableType.ExportDefault,
+  //         decl.left.name,
+  //         decl,
+  //         node,
+  //       ),
+  //     );
+  //   }
+  //   this.visitExportDeclaration(node);
+  //   currentScope.endExport();
+  // }
+
+  ExportAllDeclaration(node: ESTree.ExportAllDeclaration) {
+    const currentScope = this.currentScope as ModuleScope;
+    // currentScope.exportAllDeclaration.push(node.source.value);
   }
 
-  visitExportSpecifier(node, source) {
-    const currentScope = this.currentScope();
-    if (currentScope.type !== 'module') {
-      throw new Error('use export in a non module scope');
-    }
-
-    const localName = node.local.name;
-    const exportedName = node.exported.name;
-
-    this.visit(node);
-  }
-
-  ExportDefaultDeclaration(node) {
-    const currentScope = this.currentScope() as ModuleScope;
-    currentScope.startExport();
-    if (currentScope.type !== 'module') {
-      throw new Error('use export in a non module scope');
-    }
-    // exportInfo.alias = 'default';
-    if (node.declaration.type === 'AssignmentExpression') {
-      const decl = node.declaration;
-      currentScope.__define(
-        decl.left,
-        new Definition(
-          VariableType.ExportDefault,
-          decl.left.name,
-          decl,
-          node,
-          null,
-          null,
-        ),
-      );
-    }
-    this.visitExportDeclaration(node, true);
-    currentScope.endExport();
-  }
-
-  ExportAllDeclaration(node) {
-    const currentScope = this.currentScope() as ModuleScope;
-    currentScope.exportAllDeclaration.push(node.source.value);
-  }
-
-  ExportSpecifier(node) {
-    const local = node.id || node.local;
+  ExportSpecifier(node: ESTree.ExportSpecifier) {
+    const local = node.local;
 
     if (node.exported && node.exported.name !== local.name) {
-      const currentScope = this.currentScope() as ModuleScope;
-      currentScope.exportAlias(local.name, node.exported.name);
+      // const currentScope = this.currentScope as ModuleScope;
+      // currentScope.exportAlias(local.name, node.exported.name);
     }
 
     this.visit(local);

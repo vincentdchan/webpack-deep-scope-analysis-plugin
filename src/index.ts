@@ -13,15 +13,18 @@ const pluginName = "WebpackDeepScopeAnalysisPlugin";
 
 class WebpackDeepScopeAnalysisPlugin {
 
-  apply(compiler) {
+  apply(compiler: any) {
 
-    compiler.hooks.compilation.tap(pluginName, (compilation, data) => {
-      let moduleInfo;
+    compiler.hooks.compilation.tap(pluginName, (compilation: any, data: any) => {
+      let moduleInfo: ModuleInfo;
 
-      compilation.hooks.normalModuleLoader.tap(pluginName, function(loaderContext, module) {
+      compilation.hooks.normalModuleLoader.tap(pluginName, function(
+        loaderContext: any,
+        module: any
+      ) {
         moduleInfo = new ModuleInfo(module.resource, module);
 
-        module.parser.hooks.program.tap(pluginName, ast => {
+        module.parser.hooks.program.tap(pluginName, (ast: any) => {
           if (!moduleManager.map.has(moduleInfo.name)) {
             moduleInfo.analyze(ast);
             debugger;

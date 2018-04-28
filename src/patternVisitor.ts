@@ -1,18 +1,26 @@
 import { Syntax } from 'estraverse';
 import * as esrecurse from 'esrecurse';
+  import * as ESTree from 'estree';
 
-/**
- * Get last array element
- * @param {array} xs - array
- * @returns {any} Last elment
- */
 function getLast<T>(xs: T[]) {
   return xs[xs.length - 1] || null;
 }
 
+export type AssignmentType =
+| ESTree.AssignmentPattern
+| ESTree.AssignmentExpression
+
+export interface ICallbackOption {
+  topLevel: boolean,
+  rest: boolean
+  assignments: AssignmentType[],
+}
+
+export type PatternVisitorCallback = (id: ESTree.Identifier, option: ICallbackOption) => void;
+
 export class PatternVisitor extends esrecurse.Visitor {
 
-  public static isPattern(node) {
+  public static isPattern(node: ESTree.Node) {
     const nodeType = node.type;
 
     return (
@@ -26,13 +34,17 @@ export class PatternVisitor extends esrecurse.Visitor {
   }
 
   public rootPattern: any;
-  public callback: Function;
-  public assignments: any[];
+  public callback: PatternVisitorCallback;
+  public assignments: AssignmentType[];
   public rightHandNodes: any[];
   public restElements: any[];
 
-  constructor(options, rootPattern, callback) {
-    super(null, options);
+  constructor(
+    options: any,
+    rootPattern: ESTree.Node,
+    callback: PatternVisitorCallback,
+  ) {
+    super(undefined, options);
     this.rootPattern = rootPattern;
     this.callback = callback;
     this.assignments = [];
@@ -40,7 +52,7 @@ export class PatternVisitor extends esrecurse.Visitor {
     this.restElements = [];
   }
 
-  Identifier(pattern) {
+  Identifier(pattern: ESTree.Identifier) {
     const lastRestElement = getLast(this.restElements);
 
     this.callback(pattern, {
@@ -53,7 +65,7 @@ export class PatternVisitor extends esrecurse.Visitor {
     });
   }
 
-  Property(property) {
+  Property(property: ESTree.Property) {
     // Computed property's key is a right hand node.
     if (property.computed) {
       this.rightHandNodes.push(property.key);
@@ -65,7 +77,7 @@ export class PatternVisitor extends esrecurse.Visitor {
     this.visit(property.value);
   }
 
-  ArrayPattern(pattern) {
+  ArrayPattern(pattern: ESTree.ArrayPattern) {
     for (let i = 0, iz = pattern.elements.length; i < iz; ++i) {
       const element = pattern.elements[i];
 
@@ -73,20 +85,20 @@ export class PatternVisitor extends esrecurse.Visitor {
     }
   }
 
-  AssignmentPattern(pattern) {
+  AssignmentPattern(pattern: ESTree.AssignmentPattern) {
     this.assignments.push(pattern);
     this.visit(pattern.left);
     this.rightHandNodes.push(pattern.right);
     this.assignments.pop();
   }
 
-  RestElement(pattern) {
+  RestElement(pattern: ESTree.RestElement) {
     this.restElements.push(pattern);
     this.visit(pattern.argument);
     this.restElements.pop();
   }
 
-  MemberExpression(node) {
+  MemberExpression(node: ESTree.MemberExpression) {
     // Computed property's key is a right hand node.
     if (node.computed) {
       this.rightHandNodes.push(node.property);
@@ -103,22 +115,22 @@ export class PatternVisitor extends esrecurse.Visitor {
   // But espree 2.0 parses to ArrayExpression, ObjectExpression, etc...
   //
 
-  SpreadElement(node) {
+  SpreadElement(node: ESTree.SpreadElement) {
     this.visit(node.argument);
   }
 
-  ArrayExpression(node) {
+  ArrayExpression(node: ESTree.ArrayExpression) {
     node.elements.forEach(this.visit, this);
   }
 
-  AssignmentExpression(node) {
+  AssignmentExpression(node: ESTree.AssignmentExpression) {
     this.assignments.push(node);
     this.visit(node.left);
     this.rightHandNodes.push(node.right);
     this.assignments.pop();
   }
 
-  CallExpression(node) {
+  CallExpression(node: ESTree.CallExpression) {
     // arguments are right hand nodes.
     node.arguments.forEach(a => {
       this.rightHandNodes.push(a);

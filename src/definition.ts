@@ -1,30 +1,33 @@
 import { VariableType } from './variable';
+import * as ESTree from 'estree';
+
+type Declaration =
+| ESTree.VariableDeclaration
+| ESTree.ImportDeclaration
+| ESTree.ExportDefaultDeclaration
 
 export class Definition {
 
   constructor(
-    public type: VariableType,
-    public name: any, 
-    public node: any,
-    public parent: Definition | null = null,
-    public index: number | undefined = null,
-    public kind: string | null = null
+    public readonly type: VariableType,
+    public readonly name: ESTree.Pattern | null, 
+    public readonly node: ESTree.Node,
+    public readonly parent?: Declaration,
+    public readonly index?: number,
+    public readonly kind?: string,
   ) { }
 
 }
 
 export class ParameterDefinition extends Definition {
 
-  public rest: boolean;
-
-  constructor(name, node, index, rest) {
-    super(VariableType.Parameter, name, node, null, index, null);
-
-    /**
-     * Whether the parameter definition is a part of a rest parameter.
-     * @member {boolean} ParameterDefinition#rest
-     */
-    this.rest = rest;
+  constructor(
+    name: ESTree.Identifier,
+    node: ESTree.Node,
+    index: number,
+    public readonly rest: boolean,
+  ) {
+    super(VariableType.Parameter, name, node, undefined, index, undefined);
   }
 
 }

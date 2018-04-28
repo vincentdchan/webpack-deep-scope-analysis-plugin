@@ -1,9 +1,10 @@
 import * as assert from 'assert';
 import { Variable, VariableType } from '../variable';
-import { Reference } from '../reference';
+import { Reference, ImplicitGlobal } from '../reference';
 import { ScopeManager } from '../scopeManager';
 import { Definition } from '../definition';
 import { Syntax } from 'estraverse';
+import * as ESTree from 'estree';
 
 export type ScopeType =
 | 'TDZ'
@@ -123,17 +124,15 @@ function registerScope(scopeManager: ScopeManager, scope: Scope): void {
 function shouldBeStatically(def: Definition): boolean {
   return (
     def.type === VariableType.ClassName ||
-    (def.type === VariableType.Variable && def.parent.kind !== 'var')
+    (def.type === VariableType.Variable && (def.parent as ESTree.VariableDeclaration).kind !== 'var')
   );
 }
 
 export class Scope {
 
-  public type: ScopeType;
   public set: Map<string, Variable>;
   public taints: Map<string, boolean>;
   public dynamic: boolean;
-  public block: any;
   public through: Reference[];
   public variables: Variable[];
   public references: Reference[];
@@ -141,24 +140,18 @@ export class Scope {
   public functionExpressionScope: boolean;
   public directCallToEvalScope: boolean;
   public thisFound: boolean;
-  public __left: any[];
-  public upper: Scope;
+  public __left: Reference[] | null;
   public isStrict: boolean;
   public childScopes: Scope[];
   public __declaredVariables: WeakMap<any, Variable[]>;
 
   constructor(
     scopeManager: ScopeManager,
-    type: ScopeType,
-    upperScope: Scope,
-    block: any,
+    public readonly type: ScopeType,
+    public readonly upper: Scope | null = null,
+    public readonly block: any,
     isMethodDefinition: boolean
   ) {
-    /**
-     * One of 'TDZ', 'module', 'block', 'switch', 'function', 'catch', 'with', 'function', 'class', 'global'.
-     */
-    this.type = type;
-
     /**
      * The scoped {@link Variable}s of this scope, as <code>{ Variable.name
      * : Variable }</code>.
@@ -181,8 +174,6 @@ export class Scope {
      * All those scopes are considered 'dynamic'.
      */
     this.dynamic = this.type === 'global' || this.type === 'with';
-
-    this.block = block;
 
     this.through = [];
 
@@ -215,7 +206,7 @@ export class Scope {
       this.type === 'function' ||
       this.type === 'module'
         ? this
-        : upperScope.variableScope;
+        : this.upper!.variableScope;
 
     /**
      * Whether this scope is created by a FunctionExpression.
@@ -235,12 +226,6 @@ export class Scope {
     this.thisFound = false;
 
     this.__left = [];
-
-    /**
-     * Reference to the parent {@link Scope|scope}.
-     * @member {Scope} Scope#upper
-     */
-    this.upper = upperScope;
 
     /**
      * Whether 'use strict' is in effect in this scope.
@@ -267,11 +252,11 @@ export class Scope {
     registerScope(scopeManager, this);
   }
 
-  __shouldStaticallyClose(scopeManager) {
+  __shouldStaticallyClose(scopeManager: ScopeManager) {
     return !this.dynamic || scopeManager.__isOptimistic();
   }
 
-  __shouldStaticallyCloseForGlobal(ref) {
+  __shouldStaticallyCloseForGlobal(ref: Reference) {
     // On global scope, let/const/class declarations should be resolved statically.
     const name = ref.identifier.name;
 
@@ -279,29 +264,29 @@ export class Scope {
       return false;
     }
 
-    const variable = this.set.get(name);
+    const variable: Variable = this.set.get(name)!;
     const defs = variable.defs;
 
     return defs.length > 0 && defs.every(shouldBeStatically);
   }
 
-  __staticCloseRef(ref) {
+  __staticCloseRef(ref: Reference) {
     if (!this.__resolve(ref)) {
       this.__delegateToUpperScope(ref);
     }
   }
 
-  __dynamicCloseRef(ref) {
+  __dynamicCloseRef(ref: Reference) {
     // notify all names are through to global
     let current: Scope = this;
 
     do {
       current.through.push(ref);
-      current = current.upper;
+      current = current.upper!;
     } while (current);
   }
 
-  __globalCloseRef(ref) {
+  __globalCloseRef(ref: Reference) {
     // let/const/class declarations should be resolved statically.
     // others should be resolved dynamically.
     if (this.__shouldStaticallyCloseForGlobal(ref)) {
@@ -311,7 +296,7 @@ export class Scope {
     }
   }
 
-  __close(scopeManager) {
+  __close(scopeManager: ScopeManager) {
     let closeRef;
 
     if (this.__shouldStaticallyClose(scopeManager)) {
@@ -323,8 +308,8 @@ export class Scope {
     }
 
     // Try Resolving all references in this scope.
-    for (let i = 0, iz = this.__left.length; i < iz; ++i) {
-      const ref = this.__left[i];
+    for (let i = 0, iz = this.__left!.length; i < iz; ++i) {
+      const ref = this.__left![i];
 
       closeRef.call(this, ref);
     }
@@ -335,18 +320,18 @@ export class Scope {
 
   // To override by function scopes.
   // References in default parameters isn't resolved to variables which are in their function body.
-  __isValidResolution(ref, variable) {
+  __isValidResolution(ref: Reference, variable: Variable) {
     // eslint-disable-line class-methods-use-this, no-unused-vars
     return true;
   }
 
-  __resolve(ref) {
+  __resolve(ref: Reference) {
     const name = ref.identifier.name;
 
     if (!this.set.has(name)) {
       return false;
     }
-    const variable = this.set.get(name);
+    const variable: Variable = this.set.get(name)!;
 
     if (!this.__isValidResolution(ref, variable)) {
       return false;
@@ -363,14 +348,14 @@ export class Scope {
     return true;
   }
 
-  __delegateToUpperScope(ref) {
+  __delegateToUpperScope(ref: Reference) {
     if (this.upper) {
-      this.upper.__left.push(ref);
+      this.upper.__left!.push(ref);
     }
     this.through.push(ref);
   }
 
-  __addDeclaredVariablesOfNode(variable, node) {
+  __addDeclaredVariablesOfNode(variable: Variable, node: ESTree.Node | undefined) {
     if (node === null || node === undefined) {
       return;
     }
@@ -395,7 +380,7 @@ export class Scope {
   ) {
     let variable: Variable;
 
-    variable = set.get(name);
+    variable = set.get(name)!;
     if (!variable) {
       variable = new Variable(name, this);
       set.set(name, variable);
@@ -423,10 +408,11 @@ export class Scope {
     return null;
   }
 
-  __referencing(node,
-    assign?,
-    writeExpr?,
-    maybeImplicitGlobal?: boolean,
+  __referencing(
+    node: ESTree.Node,
+    assign?: number,
+    writeExpr?: ESTree.Expression,
+    maybeImplicitGlobal?: ImplicitGlobal,
     partial?: boolean,
     init?: boolean
   ) {
@@ -451,7 +437,7 @@ export class Scope {
     );
 
     this.references.push(ref);
-    this.__left.push(ref);
+    this.__left!.push(ref);
     return ref;
   }
 
@@ -461,7 +447,7 @@ export class Scope {
     this.directCallToEvalScope = true;
     do {
       current.dynamic = true;
-      current = current.upper;
+      current = current.upper!;
     } while (current);
   }
 
@@ -473,13 +459,7 @@ export class Scope {
     return this.__left === null;
   }
 
-  /**
-   * returns resolved {Reference}
-   * @method Scope#resolve
-   * @param {Espree.Identifier} ident - identifier to be resolved.
-   * @returns {Reference} reference
-   */
-  resolve(ident) {
+  resolve(ident: ESTree.Identifier): Reference | null {
     let ref, i, iz;
 
     assert(this.__isClosed(), 'Scope should be closed.');
@@ -522,7 +502,7 @@ export class Scope {
     return true;
   }
 
-  isUsedName(name) {
+  isUsedName(name: string) {
     if (this.set.has(name)) {
       return true;
     }

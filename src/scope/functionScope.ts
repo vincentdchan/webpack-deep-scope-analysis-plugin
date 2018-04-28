@@ -1,11 +1,19 @@
 import { Syntax } from 'estraverse';
 import { Scope } from './scope';
+import { ScopeManager } from '../scopeManager'
 
 import * as assert from 'assert';
+import { Variable } from '../variable';
+import { Reference } from '../reference';
 
 export class FunctionScope extends Scope {
 
-  constructor(scopeManager, upperScope, block, isMethodDefinition) {
+  constructor(
+    scopeManager: ScopeManager,
+    upperScope: Scope,
+    block: any,
+    isMethodDefinition: boolean,
+  ) {
     super(scopeManager, 'function', upperScope, block, isMethodDefinition);
 
     // section 9.2.13, FunctionDeclarationInstantiation.
@@ -34,8 +42,8 @@ export class FunctionScope extends Scope {
 
     const variable = this.set.get('arguments');
 
-    assert(variable, 'Always have arguments variable.');
-    return variable.tainted || variable.references.length !== 0;
+    assert(typeof variable !== 'undefined', 'Always have arguments variable.');
+    return variable!.tainted || variable!.references.length !== 0;
   }
 
   isThisMaterialized() {
@@ -46,7 +54,7 @@ export class FunctionScope extends Scope {
   }
 
   __defineArguments() {
-    this.__defineGeneric('arguments', this.set, this.variables, null, null);
+    this.__defineGeneric('arguments', this.set, this.variables, null);
     this.taints.set('arguments', true);
   }
 
@@ -56,7 +64,7 @@ export class FunctionScope extends Scope {
   //         const x = 2
   //         console.log(a)
   //     }
-  __isValidResolution(ref, variable) {
+  __isValidResolution(ref: Reference, variable: Variable): boolean {
     // If `options.nodejsScope` is true, `this.block` becomes a Program node.
     if (this.block.type === 'Program') {
       return true;
@@ -67,8 +75,8 @@ export class FunctionScope extends Scope {
     // It's invalid resolution in the following case:
     return !(
       variable.scope === this &&
-      ref.identifier.range[0] < bodyStart && // the reference is in the parameter part.
-      variable.defs.every(d => d.name.range[0] >= bodyStart)
+      ref.identifier.range![0] < bodyStart && // the reference is in the parameter part.
+      variable.defs.every(d => d.name!.range![0] >= bodyStart)
     ); // the variable is in the body.
   }
 }

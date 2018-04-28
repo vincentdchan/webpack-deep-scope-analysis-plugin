@@ -3,6 +3,8 @@ import { Scope } from './scope';
 import { Variable, VariableType } from '../variable';
 import { Reference } from '../reference';
 import { Definition } from '../definition';
+import { ScopeManager } from '../scopeManager';
+import * as ESTree from 'estree';
 
 export interface IGlobalScopeImplicit {
   set: Map<string, Variable>;
@@ -14,7 +16,10 @@ export class GlobalScope extends Scope {
 
   public implicit: IGlobalScopeImplicit;
 
-  constructor(scopeManager, block) {
+  constructor(
+    scopeManager: ScopeManager,
+    block: any
+  ) {
     super(scopeManager, 'global', null, block, false);
 
     this.implicit = {
@@ -24,14 +29,14 @@ export class GlobalScope extends Scope {
     };
   }
 
-  __close(scopeManager) {
+  __close(scopeManager: ScopeManager) {
     const implicit = [];
 
-    for (let i = 0, iz = this.__left.length; i < iz; ++i) {
-      const ref = this.__left[i];
+    for (let i = 0, iz = this.__left!.length; i < iz; ++i) {
+      const ref = this.__left![i];
 
-      if (ref.__maybeImplicitGlobal && !this.set.has(ref.identifier.name)) {
-        implicit.push(ref.__maybeImplicitGlobal);
+      if (ref.maybeImplicitGlobal && !this.set.has(ref.identifier.name)) {
+        implicit.push(ref.maybeImplicitGlobal);
       }
     }
 
@@ -45,19 +50,16 @@ export class GlobalScope extends Scope {
           VariableType.ImplicitGlobalVariable,
           info.pattern,
           info.node,
-          null,
-          null,
-          null,
         ),
       );
     }
 
-    this.implicit.left = this.__left;
+    this.implicit.left = this.__left!;
 
     return super.__close(scopeManager);
   }
 
-  __defineImplicit(node, def) {
+  __defineImplicit(node: ESTree.Node , def: Definition) {
     if (node && node.type === Syntax.Identifier) {
       this.__defineGeneric(
         node.name,

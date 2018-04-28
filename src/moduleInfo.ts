@@ -2,18 +2,15 @@ import { ScopeManager } from './scopeManager';
 
 import * as assert from 'assert';
 import { Referencer } from './referencer';
+import * as ESTree from 'estree';
 
 export class ModuleInfo {
 
-  public __name: string;
-  public __module: any;
-  public __scopeManager: ScopeManager | null;
-
-  constructor(name, module) {
-    this.__name = name;
-    this.__module = module;
-    this.__scopeManager = null;
-  }
+  constructor(
+    public readonly name: string,
+    public readonly module: any,
+    public scopeManager: ScopeManager | null = null,
+  ) { }
 
   /**
    * Set the default options
@@ -52,7 +49,7 @@ export class ModuleInfo {
    * @param {string} [providedOptions.fallback='iteration'] - A kind of the fallback in order to encounter with unknown node. See [esrecurse](https://github.com/estools/esrecurse)'s the `fallback` option.
    * @returns {ScopeManager} ScopeManager
    */
-  analyze(tree, providedOptions) {
+  analyze(tree: ESTree.Node, providedOptions?: any) {
     const options = this.updateDeeply(this.defaultOptions(), providedOptions);
     const scopeManager = new ScopeManager(options);
     const referencer = new Referencer(options, scopeManager);
@@ -63,13 +60,13 @@ export class ModuleInfo {
       scopeManager.__currentScope === null,
       'currentScope should be null.',
     );
-    this.__scopeManager = scopeManager;
+    this.scopeManager = scopeManager;
 
     this.analyzeVariables();
   }
 
   analyzeVariables() {
-    const moduleScope = this.__scopeManager.scopes[1]; // default 1 is module Scope;
+    const moduleScope = this.scopeManager!.scopes[1]; // default 1 is module Scope;
   }
 
   /**
@@ -78,13 +75,9 @@ export class ModuleInfo {
    * @param {Object} override - Updates
    * @returns {Object} Updated options
    */
-  updateDeeply(target, override) {
-    /**
-     * Is hash object
-     * @param {Object} value - Test value
-     * @returns {boolean} Result
-     */
-    function isHashObject(value) {
+  updateDeeply(target: any, override: any) {
+
+    function isHashObject(value: any): boolean {
       return (
         typeof value === 'object' &&
         value instanceof Object &&
@@ -111,15 +104,4 @@ export class ModuleInfo {
     return target;
   }
 
-  get name() {
-    return this.__name;
-  }
-
-  get module() {
-    return this.__module;
-  }
-
-  get scopeManager() {
-    return this.__scopeManager;
-  }
 }
