@@ -401,7 +401,7 @@ export class Scope {
     return variable;
   }
 
-  __define(node: any, def: Definition): Variable | null {
+  __define(node: ESTree.Node, def: Definition): Variable | null {
     if (node && node.type === Syntax.Identifier) {
       return this.__defineGeneric(node.name, this.set, this.variables, node, def);
     }

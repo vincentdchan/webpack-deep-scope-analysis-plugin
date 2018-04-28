@@ -5,9 +5,20 @@ declare module "esrecurse" {
 
   function isNode(node: any): boolean;
 
+  export interface VisitorOption {
+    optimistic?: boolean;
+    directive?: boolean;
+    ignoreEval?: boolean;
+    nodejsScope?: boolean;
+    impliedStrict?: boolean;
+    sourceType?: string;
+    ecmaVersion?: number;
+    fallback?: string;
+  }
+
   class Visitor {
 
-    constructor(visitor?: Visitor, options?: any);
+    constructor(visitor?: Visitor, options?: VisitorOption);
 
     visitChildren(node: ESTree.Node): void;
 

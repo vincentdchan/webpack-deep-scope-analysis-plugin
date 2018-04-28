@@ -40,7 +40,7 @@ export class PatternVisitor extends esrecurse.Visitor {
   public restElements: any[];
 
   constructor(
-    options: any,
+    options: esrecurse.VisitorOption,
     rootPattern: ESTree.Node,
     callback: PatternVisitorCallback,
   ) {

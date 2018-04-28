@@ -3,46 +3,40 @@ import { ScopeManager } from '../scopeManager';
 import { Definition } from '../definition';
 import { Variable } from '../variable';
 import { Reference } from '../reference';
+import * as ESTree from 'estree';
 
 export enum ImportType {
-  Default,
-  Identifier,
-  Namespace,
+  Default = 'Default',
+  Identifier = 'Identifier',
+  Namespace = 'Namespace',
 }
 
 export class ImportNameInfo {
-
   constructor(
     public readonly localName: string,
     public readonly type: ImportType,
     public readonly sourceName?: string,
     public used: boolean = false,
   ) {}
-
 }
 
 export class ImportModuleInfo {
-
   public readonly importNames: ImportNameInfo[] = [];
   public readonly map: Map<string, ImportNameInfo> = new Map();
 
-  public constructor(
-    public readonly moduleName: string,
-  ) { }
+  public constructor(public readonly moduleName: string) {}
 
   public addImportName(importName: ImportNameInfo) {
     if (this.map.has(importName.localName)) {
-      throw new TypeError("Variable is already exist");
+      throw new TypeError('Variable is already exist');
     }
 
     this.map.set(importName.localName, importName);
     this.importNames.push(importName);
   }
-
 }
 
 export class ImportManager {
-
   public readonly moduleMap: Map<string, ImportModuleInfo> = new Map();
 
   public findOrCreateModuleInfo(name: string) {
@@ -54,118 +48,94 @@ export class ImportManager {
       return newModuleMap;
     }
   }
-
 }
 
-export class ExportNameInfo {
-
-  public readonly relatedImportNames: ImportNameInfo[] = [];
+export class LocalExportIdentifier {
+  public readonly dependentImportNames: ImportNameInfo[] = [];
 
   public constructor(
-    public exportName: string,
-  ) { }
+    public readonly exportName: string,
+    public readonly node: ESTree.Node,
+  ) {}
+}
 
+export enum ExternalModuleType {
+  Identifier = 'Identifier',
+  Namespace = 'Namespace',
+}
+
+export class ExternalIdentifierInfo {
+  public constructor(
+    public readonly exportName: string,
+    public readonly sourceName: string,
+  ) {}
+}
+
+export class ExternalModuleInfo {
+  public readonly idInfos: ExternalIdentifierInfo[] = [];
+  public readonly idInfoMap: Map<string, ExternalIdentifierInfo> = new Map();
+
+  public constructor(
+    public readonly moduleName: string,
+    public readonly exportType: ExternalModuleType,
+  ) {}
+
+  public addExternalIdentifierInfo(idInfo: ExternalIdentifierInfo) {
+    if (this.idInfoMap.has(idInfo.exportName)) {
+      throw new TypeError('Export name is already exist');
+    }
+    this.idInfoMap.set(idInfo.exportName, idInfo);
+    this.idInfos.push(idInfo);
+  }
 }
 
 export class ExportManager {
+  public readonly localNames: LocalExportIdentifier[] = [];
+  public readonly localNameMap: Map<string, LocalExportIdentifier> = new Map();
+  public readonly externalModules: ExternalModuleInfo[] = [];
+  public readonly externalModuleMap: Map<
+    string,
+    ExternalModuleInfo
+  > = new Map();
 
-  private __names: ExportNameInfo[] = [];
-  private __nameMap: Map<string, ExportNameInfo> = new Map();
-
-  addExportNameInfo(exportInfo: ExportNameInfo) {
-    this.__names.push(exportInfo);
-    this.__nameMap.set(exportInfo.exportName, exportInfo);
-    return this;
+  public addLocalExportIdentifier(exportId: LocalExportIdentifier) {
+    this.localNames.push(exportId);
+    this.localNameMap.set(exportId.exportName, exportId);
   }
 
-  get names() {
-    return this.__names;
+  public findOrCreateExternalModuleNameInfo(
+    moduleName: string,
+    type:ExternalModuleType
+  ) {
+    if (this.externalModuleMap.has(moduleName)) {
+      return this.externalModuleMap.get(moduleName)!;
+    } else {
+      const module = new ExternalModuleInfo(moduleName, type);
+      this.externalModuleMap.set(moduleName, module);
+      this.externalModules.push(module);
+      return module;
+    }
   }
-
-  get nameMap() {
-    return this.__nameMap;
-  }
-
 }
 
 export class ModuleScope extends Scope {
-
   public readonly importManager: ImportManager = new ImportManager();
   public readonly exportManager: ExportManager = new ExportManager();
-  private __isImporting: boolean = false;
-  private __isExporting: boolean = false;
+  public isExportingNamedDeclaration: boolean = false;
 
-  constructor(
-    scopeManager: ScopeManager,
-    upperScope: Scope,
-    block: any
-  ) {
+  public constructor(scopeManager: ScopeManager, upperScope: Scope, block: any) {
     super(scopeManager, 'module', upperScope, block, false);
   }
-
-  // public __define(node, def: Definition): Variable | null {
-  //   const variable = super.__define(node, def);
-  //   if (variable) {
-  //     // variable.moduleInfo = new VariableModuleInfo();
-
-  //     // if (this.__isExporting) {
-  //     //   variable.moduleInfo.isExported = true;
-  //     // }
-  //   }
-  //   return variable;
-  // }
-
-  // __referencing(
-  //   node,
-  //   assign?,
-  //   writeExpr?,
-  //   maybeImplicitGlobal?: boolean,
-  //   partial?: boolean,
-  //   init?: boolean
-  // ) {
-  //   const ref = super.__referencing(
-  //     node,
-  //     assign,
-  //     writeExpr,
-  //     maybeImplicitGlobal,
-  //     partial,
-  //     init,
-  //   );
-  //   const name = ref.identifier.name;
-  //   const variable = this.set.get(name);
-  //   // if (this.__isImporting) {
-  //   //   variable.moduleInfo.isImported = true;
-  //   // }
-  //   // if (this.__isExporting) {
-  //   //   variable.moduleInfo.isExported = true;
-  //   // }
-  //   return ref;
-  // }
-
-  // public exportAlias(variableName: string, aliasName: string) {
-  //   const variable = this.set.get(variableName);
-  //   // variable.moduleInfo.exportAliasName = aliasName;
-  // }
-
-  // public importSource(variableName: string, sourceName: string) {
-  //   const variable = this.set.get(variableName);
-  //   // variable.moduleInfo.importSourceName = sourceName;
-  // }
-
-  public startImport() {
-    this.__isImporting = true;
-  }
-
-  public endImport() {
-    this.__isImporting = false;
-  }
-
-  public startExport() {
-    this.__isExporting = true;
-  }
-
-  public endExport() {
-    this.__isExporting = false;
+  
+  public __define(node: ESTree.Node, def: Definition): Variable | null {
+    const ancestor = super.__define(node, def);
+    if (ancestor !== null) {
+      this.exportManager.addLocalExportIdentifier(new LocalExportIdentifier(
+        ancestor.name,
+        ancestor.defs[0].node
+      ));
+    }
+    return ancestor;
   }
 
 }
