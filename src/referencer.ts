@@ -85,7 +85,11 @@ class Importer extends esrecurse.Visitor {
     const local = node.local;
 
     this.visitImport(local, node);
-    const importName = new ImportNameInfo(local.name, ImportType.Namespace);
+    const importName = new ImportNameInfo(
+      local.name,
+      local.name,
+      ImportType.Namespace,
+    );
     this.moduleInfo.addImportName(importName);
   }
 
@@ -93,7 +97,12 @@ class Importer extends esrecurse.Visitor {
     const local = node.local;
 
     this.visitImport(local, node);
-    const importName = new ImportNameInfo(local.name, ImportType.Default);
+    const importName = new ImportNameInfo(
+      local.name,
+      local.name,
+      ImportType.Default,
+
+    );
     this.moduleInfo.addImportName(importName);
   }
 
@@ -103,8 +112,8 @@ class Importer extends esrecurse.Visitor {
     this.visitImport(local, node);
     const importName = new ImportNameInfo(
       local.name,
-      ImportType.Identifier,
       node.imported.name,
+      ImportType.Identifier,
     );
     this.moduleInfo.addImportName(importName);
   }

@@ -148,7 +148,7 @@ export class ScopeManager {
   }
 
   __nestFunctionScope(
-    node: ESTree.Node,
+    node: ESTree.Function | ESTree.Program,
     isMethodDefinition: boolean
   ) {
     return this.__nestScope(
@@ -172,7 +172,7 @@ export class ScopeManager {
     return this.__nestScope(new ClassScope(this, this.__currentScope!, node));
   }
 
-  __nestSwitchScope(node: ESTree.Node) {
+  __nestSwitchScope(node: ESTree.SwitchStatement) {
     return this.__nestScope(new SwitchScope(this, this.__currentScope!, node));
   }
 
@@ -184,7 +184,7 @@ export class ScopeManager {
     return this.__nestScope(new TDZScope(this, this.__currentScope!, node));
   }
 
-  __nestFunctionExpressionNameScope(node: ESTree.Node) {
+  __nestFunctionExpressionNameScope(node: ESTree.FunctionExpression) {
     return this.__nestScope(
       new FunctionExpressionNameScope(this, this.__currentScope!, node),
     );

@@ -18,7 +18,7 @@ export class GlobalScope extends Scope {
 
   constructor(
     scopeManager: ScopeManager,
-    block: any
+    block: ESTree.Node,
   ) {
     super(scopeManager, 'global', null, block, false);
 

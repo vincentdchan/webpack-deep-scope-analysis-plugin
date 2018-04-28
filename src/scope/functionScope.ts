@@ -5,13 +5,14 @@ import { ScopeManager } from '../scopeManager'
 import * as assert from 'assert';
 import { Variable } from '../variable';
 import { Reference } from '../reference';
+import * as ESTree from 'estree';
 
 export class FunctionScope extends Scope {
 
   constructor(
     scopeManager: ScopeManager,
     upperScope: Scope,
-    block: any,
+    block: ESTree.Function | ESTree.Program,
     isMethodDefinition: boolean,
   ) {
     super(scopeManager, 'function', upperScope, block, isMethodDefinition);

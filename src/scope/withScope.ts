@@ -1,12 +1,13 @@
 import { Scope } from './scope';
 import { ScopeManager } from '../scopeManager';
+import * as ESTree from 'estree';
 
 export class WithScope extends Scope {
 
   constructor(
     scopeManager: ScopeManager,
     upperScope: Scope,
-    block: any
+    block: ESTree.Node,
   ) {
     super(scopeManager, 'with', upperScope, block, false);
   }

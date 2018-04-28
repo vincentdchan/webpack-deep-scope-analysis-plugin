@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { ScopeManager } from "./scopeManager";
 import { Variable } from "./variable";
 import { ModuleManager } from "./moduleManager";
-import { ModuleInfo } from "./moduleInfo";
+import { ModuleAnalyser } from "./moduleAnalyser";
 import { Scope } from "./scope";
 // const version = require("./package.json").version;
 
@@ -16,19 +16,19 @@ class WebpackDeepScopeAnalysisPlugin {
   apply(compiler: any) {
 
     compiler.hooks.compilation.tap(pluginName, (compilation: any, data: any) => {
-      let moduleInfo: ModuleInfo;
+      let moduleAnalyser: ModuleAnalyser;
 
       compilation.hooks.normalModuleLoader.tap(pluginName, function(
         loaderContext: any,
         module: any
       ) {
-        moduleInfo = new ModuleInfo(module.resource, module);
+        moduleAnalyser = new ModuleAnalyser(module.resource, module);
 
         module.parser.hooks.program.tap(pluginName, (ast: any) => {
-          if (!moduleManager.map.has(moduleInfo.name)) {
-            moduleInfo.analyze(ast);
+          if (!moduleManager.map.has(moduleAnalyser.name)) {
+            moduleAnalyser.analyze(ast);
             debugger;
-            moduleManager.map.set(moduleInfo.name, moduleInfo);
+            moduleManager.map.set(moduleAnalyser.name, moduleAnalyser);
           }
         });
         

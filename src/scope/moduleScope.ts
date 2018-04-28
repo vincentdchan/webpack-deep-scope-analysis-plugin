@@ -12,11 +12,12 @@ export enum ImportType {
 }
 
 export class ImportNameInfo {
+  public mustBeImported: boolean = false;
+
   constructor(
     public readonly localName: string,
+    public readonly sourceName: string,
     public readonly type: ImportType,
-    public readonly sourceName?: string,
-    public used: boolean = false,
   ) {}
 }
 
@@ -51,7 +52,7 @@ export class ImportManager {
 }
 
 export class LocalExportIdentifier {
-  public readonly dependentImportNames: ImportNameInfo[] = [];
+  public dependentImportNames?: ImportNameInfo[];
 
   public constructor(
     public readonly exportName: string,
@@ -123,7 +124,11 @@ export class ModuleScope extends Scope {
   public readonly exportManager: ExportManager = new ExportManager();
   public isExportingNamedDeclaration: boolean = false;
 
-  public constructor(scopeManager: ScopeManager, upperScope: Scope, block: any) {
+  public constructor(
+    scopeManager: ScopeManager,
+    upperScope: Scope,
+    block: ESTree.Node,
+  ) {
     super(scopeManager, 'module', upperScope, block, false);
   }
   

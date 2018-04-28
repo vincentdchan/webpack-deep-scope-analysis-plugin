@@ -3,8 +3,10 @@ import { ScopeManager } from './scopeManager';
 import * as assert from 'assert';
 import { Referencer } from './referencer';
 import * as ESTree from 'estree';
+import { Scope, ModuleScope } from './scope';
+import { Reference } from './reference';
 
-export class ModuleInfo {
+export class ModuleAnalyser {
 
   constructor(
     public readonly name: string,
@@ -42,17 +44,55 @@ export class ModuleInfo {
     );
     this.scopeManager = scopeManager;
 
-    this.analyzeVariables();
+    this.analyzeImportExport();
   }
 
-  analyzeVariables() {
-    const moduleScope = this.scopeManager!.scopes[1]; // default 1 is module Scope;
+  get moduleScope() {
+    return this.scopeManager!.scopes[1] as ModuleScope; // default 1 is module Scope; 
+  }
+
+  private analyzeImportExport() {
+    const moduleScope = this.moduleScope;
+
+    const { importManager, exportManager } = moduleScope;
+
+    for (const value of importManager.moduleMap.values()) {
+      value.importNames.forEach(item => {
+        const { localName } = item;
+
+        const variable = moduleScope.set.get(localName);
+
+        if (typeof variable === 'undefined') {
+          throw new TypeError('Variable is not found');
+        }
+
+        for (let i = 0; i < variable.references.length; i++) {
+          const ref = variable.references[i];
+          const childScopeOfModule = this.findChildScopeOfModule(ref);
+          if (childScopeOfModule === null) {
+            item.mustBeImported = true;
+            break;
+          }
+        }
+      })
+    }
+  }
+
+  private findChildScopeOfModule(ref: Reference): Scope | null {
+    let scope = ref.from;
+    while (scope.upper !== null) {
+      if (scope.upper.type === 'module') {
+        return scope;
+      }
+      scope = scope.upper;
+    }
+    return null;
   }
 
   /**
    * Preform deep update on option object
    */
-  updateDeeply(target: any, override: any) {
+  private updateDeeply(target: any, override: any) {
 
     function isHashObject(value: any): boolean {
       return (

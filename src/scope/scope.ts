@@ -26,7 +26,7 @@ export type ScopeType =
  */
 function isStrictScope(
   scope: Scope,
-  block: any,
+  block: ESTree.Node,
   isMethodDefinition: boolean,
   useDirective: boolean,
 ) {
@@ -58,7 +58,7 @@ function isStrictScope(
     if (block.type === Syntax.Program) {
       body = block;
     } else {
-      body = block.body;
+      body = (block as any).body;
     }
 
     if (!body) {
