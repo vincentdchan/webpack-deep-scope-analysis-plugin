@@ -268,9 +268,9 @@ export class Referencer extends esrecurse.Visitor {
     if (node.body) {
       // Skip BlockStatement to prevent creating BlockStatement scope.
       if (node.body.type === Syntax.BlockStatement) {
-        (this as any).visitChildren(node.body);
+        this.visitChildren(node.body);
       } else {
-        (this as any).visit(node.body);
+        this.visit(node.body);
       }
     }
 
@@ -305,7 +305,7 @@ export class Referencer extends esrecurse.Visitor {
     let previous: boolean;
 
     if (node.computed) {
-      (this as any).visit(node.key);
+      this.visit(node.key);
     }
 
     const isMethodDefinition = node.type === Syntax.MethodDefinition;
@@ -502,7 +502,7 @@ export class Referencer extends esrecurse.Visitor {
       this.currentScope!.isStrict = true;
     }
 
-    (this as any).visitChildren(node);
+    this.visitChildren(node);
     this.close(node);
   }
 
@@ -514,7 +514,7 @@ export class Referencer extends esrecurse.Visitor {
     if (PatternVisitor.isPattern(node.argument)) {
       this.currentScope!.__referencing(node.argument, Reference.RW);
     } else {
-      (this as any).visitChildren(node);
+      this.visitChildren(node);
     }
   }
 
@@ -554,7 +554,7 @@ export class Referencer extends esrecurse.Visitor {
       this.scopeManager.__nestForScope(node);
     }
 
-    (this as any).visitChildren(node);
+    this.visitChildren(node);
 
     this.close(node);
   }
@@ -578,7 +578,7 @@ export class Referencer extends esrecurse.Visitor {
       // let / const should be enclosed into it. Only VariableDeclaration affects on the caller's environment.
       this.currentScope!.variableScope.__detectEval();
     }
-    (this as any).visitChildren(node);
+    this.visitChildren(node);
   }
 
   BlockStatement(node: ESTree.BlockStatement) {
@@ -586,7 +586,7 @@ export class Referencer extends esrecurse.Visitor {
       this.scopeManager.__nestBlockScope(node);
     }
 
-    (this as any).visitChildren(node);
+    this.visitChildren(node);
 
     this.close(node);
   }
@@ -615,7 +615,7 @@ export class Referencer extends esrecurse.Visitor {
     for (let i = 0, iz = node.declarations.length; i < iz; ++i) {
       const decl = node.declarations[i];
 
-      (this as any).visitVariableDeclaration(
+      this.visitVariableDeclaration(
         variableTargetScope,
         VariableType.Variable,
         node,
@@ -682,7 +682,7 @@ export class Referencer extends esrecurse.Visitor {
       return;
     }
 
-    (this as any).visitChildren(node);
+    this.visitChildren(node);
   }
 
   // ExportDeclaration(node: ESTree.ExportDe) {

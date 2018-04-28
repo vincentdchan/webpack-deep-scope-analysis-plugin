@@ -17,21 +17,15 @@ import * as assert from 'assert';
 import * as ESTree from 'estree';
 
 export class ScopeManager {
-  public scopes: Scope[];
-  public globalScope: Scope | null;
-  public __nodeToScope: WeakMap<any, Scope[]>;
-  public __currentScope: Scope | null;
-  public __options: any;
-  public __declaredVariables: WeakMap<any, Variable[]>;
+  public globalScope: Scope | null = null;
+  public __currentScope: Scope | null = null;
+  public readonly scopes: Scope[] = [];
+  public readonly __nodeToScope: WeakMap<any, Scope[]> = new WeakMap();
+  public readonly __declaredVariables: WeakMap<any, Variable[]> = new WeakMap();
 
-  constructor(options: any) {
-    this.scopes = [];
-    this.globalScope = null;
-    this.__nodeToScope = new WeakMap();
-    this.__currentScope = null;
-    this.__options = options;
-    this.__declaredVariables = new WeakMap();
-  }
+  constructor(
+    public readonly __options: any
+  ) { }
 
   __useDirective() {
     return this.__options.directive;
