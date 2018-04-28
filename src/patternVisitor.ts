@@ -1,6 +1,6 @@
 import { Syntax } from 'estraverse';
 import * as esrecurse from 'esrecurse';
-  import * as ESTree from 'estree';
+import * as ESTree from 'estree';
 
 function getLast<T>(xs: T[]) {
   return xs[xs.length - 1] || null;

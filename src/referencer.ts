@@ -6,7 +6,7 @@ import { PatternVisitor, PatternVisitorCallback, AssignmentType } from './patter
 import { Definition, ParameterDefinition } from './definition';
 import * as assert from 'assert';
 import { ScopeManager } from './scopeManager';
-import { Scope, ModuleScope } from './scope';
+import { Scope, ModuleScope, ImportModuleInfo, ImportNameInfo, ImportType } from './scope';
 import * as ESTree from 'estree';
 
 /**
@@ -52,8 +52,15 @@ class Importer extends esrecurse.Visitor {
     public readonly referencer: Referencer
   ) {
     super(undefined, referencer.options);
-    this.declaration = declaration;
-    this.referencer = referencer;
+  }
+
+  get moduleScope() {
+    return this.referencer.currentScope as ModuleScope;
+  }
+
+  get moduleInfo() {
+    const sourceContent = this.declaration.source.value as string;
+    return this.moduleScope.importManager.findOrCreateModuleInfo(sourceContent);
   }
 
   visitImport(id: ESTree.Identifier, specifier: ImportSpecifierNode) {
@@ -75,25 +82,29 @@ class Importer extends esrecurse.Visitor {
   ImportNamespaceSpecifier(node: ESTree.ImportNamespaceSpecifier) {
     const local = node.local;
 
-    if (local) {
-      this.visitImport(local, node);
-    }
+    this.visitImport(local, node);
+    const importName = new ImportNameInfo(local.name, ImportType.Namespace);
+    this.moduleInfo.addImportName(importName);
   }
 
   ImportDefaultSpecifier(node: ESTree.ImportDefaultSpecifier) {
     const local = node.local;
 
     this.visitImport(local, node);
+    const importName = new ImportNameInfo(local.name, ImportType.Default);
+    this.moduleInfo.addImportName(importName);
   }
 
-  ImportSpecifier(node: ImportSpecifierNode) {
+  ImportSpecifier(node: ESTree.ImportSpecifier) {
     const local = node.local;
 
-    if ((node as any).name) {
-        this.visitImport((node as any).name, node);
-    } else {
-        this.visitImport(local, node);
-    }
+    this.visitImport(local, node);
+    const importName = new ImportNameInfo(
+      local.name,
+      ImportType.Identifier,
+      node.imported.name
+    );
+    this.moduleInfo.addImportName(importName);
   }
 
 }

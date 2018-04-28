@@ -4,10 +4,18 @@ import { Definition } from '../definition';
 import { Variable } from '../variable';
 import { Reference } from '../reference';
 
+export enum ImportType {
+  Default,
+  Identifier,
+  Namespace,
+}
+
 export class ImportNameInfo {
 
   constructor(
-    public readonly name: string,
+    public readonly localName: string,
+    public readonly type: ImportType,
+    public readonly sourceName?: string,
     public used: boolean = false,
   ) {}
 
@@ -16,16 +24,36 @@ export class ImportNameInfo {
 export class ImportModuleInfo {
 
   public readonly importNames: ImportNameInfo[] = [];
+  public readonly map: Map<string, ImportNameInfo> = new Map();
 
   public constructor(
     public readonly moduleName: string,
   ) { }
+
+  public addImportName(importName: ImportNameInfo) {
+    if (this.map.has(importName.localName)) {
+      throw new TypeError("Variable is already exist");
+    }
+
+    this.map.set(importName.localName, importName);
+    this.importNames.push(importName);
+  }
 
 }
 
 export class ImportManager {
 
   public readonly moduleMap: Map<string, ImportModuleInfo> = new Map();
+
+  public findOrCreateModuleInfo(name: string) {
+    if (this.moduleMap.has(name)) {
+      return this.moduleMap.get(name)!;
+    } else {
+      const newModuleMap = new ImportModuleInfo(name);
+      this.moduleMap.set(name, newModuleMap);
+      return newModuleMap;
+    }
+  }
 
 }
 
