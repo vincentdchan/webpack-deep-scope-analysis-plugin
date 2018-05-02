@@ -127,8 +127,11 @@ export class ModuleAnalyser {
     const { importManager, exportManager } = moduleScope;
 
     const dependentScopesGroup = _.groupBy(moduleScope.childScopes, (childScope: Scope) =>
-        childScope.type === 'function' &&
-        childScope.block.type === 'FunctionDeclaration' &&
+        (childScope.type === 'function' || childScope.type === 'class') &&
+        (
+          childScope.block.type === 'FunctionDeclaration'  ||
+          childScope.block.type === 'ClassDeclaration'
+        ) &&
         childScope.block.id !== null,
     );
 
@@ -143,7 +146,7 @@ export class ModuleAnalyser {
   private handleDependentScopes(scopes?: Scope[]) {
     if (_.isUndefined(scopes)) return;
     scopes.forEach(scope => {
-      const idName = (scope.block as ESTree.FunctionDeclaration).id!.name;
+      const idName = (scope.block as (ESTree.FunctionDeclaration | ESTree.ClassDeclaration)).id!.name;
       const info = new ModuleChildScopeInfo(scope, this.moduleScope.importManager);
       this.childFunctionScopeInfo.set(idName, info);
     });
