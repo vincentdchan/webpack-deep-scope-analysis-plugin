@@ -83,6 +83,17 @@ export class ModuleAnalyser {
     return this.scopeManager!.scopes[1] as ModuleScope; // default 1 is module Scope; 
   }
 
+  public generateExportInfo() {
+    const importManager = this.moduleScope.importManager;
+    const result: any = {};
+    for (const [name, module] of importManager.moduleMap.entries()) {
+      result[name] = module.importIds
+        .filter(item => item.mustBeImported)
+        .map(item => item.localName);
+    }
+    return result;
+  }
+
   private analyzeImportExport() {
     const moduleScope = this.moduleScope;
 
