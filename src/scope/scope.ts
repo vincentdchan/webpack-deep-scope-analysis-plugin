@@ -130,40 +130,29 @@ function shouldBeStatically(def: Definition): boolean {
 
 export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
 
-  public set: Map<string, Variable>;
-  public taints: Map<string, boolean>;
   public dynamic: boolean;
-  public through: Reference[];
-  public variables: Variable[];
-  public references: Reference[];
   public variableScope: Scope;
-  public functionExpressionScope: boolean;
-  public directCallToEvalScope: boolean;
-  public thisFound: boolean;
-  public __left: Reference[] | null;
+  public functionExpressionScope: boolean = false;
+  public directCallToEvalScope: boolean = false;
+  public thisFound: boolean = false;
+  public __left: Reference[] | null = [];
   public isStrict: boolean;
-  public childScopes: Scope[];
-  public __declaredVariables: WeakMap<any, Variable[]>;
 
-  constructor(
+  public readonly set: Map<string, Variable> = new Map();
+  public readonly taints: Map<string, boolean> = new Map();
+  public readonly through: Reference[] = [];
+  public readonly variables: Variable[] = [];
+  public readonly references: Reference[] = [];
+  public readonly childScopes: Scope[] = [];
+  public readonly __declaredVariables: WeakMap<any, Variable[]>;
+
+  public constructor(
     scopeManager: ScopeManager,
     public readonly type: ScopeType,
     public readonly upper: Scope | null = null,
     public readonly block: BlockType,
     isMethodDefinition: boolean
   ) {
-    /**
-     * The scoped {@link Variable}s of this scope, as <code>{ Variable.name
-     * : Variable }</code>.
-     */
-    this.set = new Map();
-
-    /**
-     * The tainted variables of this scope, as <code>{ Variable.name :
-     * boolean }</code>.
-     * @member {Map} Scope#taints */
-    this.taints = new Map();
-
     /**
      * Generally, through the lexical scoping of JS you can always know
      * which variable an identifier in the source code refers to. There are
@@ -174,27 +163,6 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
      * All those scopes are considered 'dynamic'.
      */
     this.dynamic = this.type === 'global' || this.type === 'with';
-
-    this.through = [];
-
-    /**
-     * The scoped {@link Variable}s of this scope. In the case of a
-     * 'function' scope this includes the automatic argument <em>arguments</em> as
-     * its first element, as well as all further formal arguments.
-     * @member {Variable[]} Scope#variables
-     */
-    this.variables = [];
-
-    /**
-     * Any variable {@link Reference|reference} found in this scope. This
-     * includes occurrences of local variables as well as variables from
-     * parent scopes (including the global scope). For local variables
-     * this also includes defining occurrences (like in a 'var' statement).
-     * In a 'function' scope this does not include the occurrences of the
-     * formal parameter in the parameter list.
-     * @member {Reference[]} Scope#references
-     */
-    this.references = [];
 
     /**
      * For 'global' and 'function' scopes, this is a self-reference. For
@@ -209,25 +177,6 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
         : this.upper!.variableScope;
 
     /**
-     * Whether this scope is created by a FunctionExpression.
-     * @member {boolean} Scope#functionExpressionScope
-     */
-    this.functionExpressionScope = false;
-
-    /**
-     * Whether this is a scope that contains an 'eval()' invocation.
-     * @member {boolean} Scope#directCallToEvalScope
-     */
-    this.directCallToEvalScope = false;
-
-    /**
-     * @member {boolean} Scope#thisFound
-     */
-    this.thisFound = false;
-
-    this.__left = [];
-
-    /**
      * Whether 'use strict' is in effect in this scope.
      * @member {boolean} Scope#isStrict
      */
@@ -238,11 +187,6 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
       scopeManager.__useDirective(),
     );
 
-    /**
-     * List of nested {@link Scope}s.
-     * @member {Scope[]} Scope#childScopes
-     */
-    this.childScopes = [];
     if (this.upper) {
       this.upper.childScopes.push(this);
     }
