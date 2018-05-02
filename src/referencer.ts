@@ -14,7 +14,7 @@ import {
   Scope,
   ModuleScope,
   ImportModuleInfo,
-  ImportNameInfo,
+  ImportIdentifierInfo,
   ImportType,
   LocalExportIdentifier,
   ExternalModuleType,
@@ -85,7 +85,7 @@ class Importer extends esrecurse.Visitor {
     const local = node.local;
 
     this.visitImport(local, node);
-    const importName = new ImportNameInfo(
+    const importName = new ImportIdentifierInfo(
       local.name,
       local.name,
       ImportType.Namespace,
@@ -97,7 +97,7 @@ class Importer extends esrecurse.Visitor {
     const local = node.local;
 
     this.visitImport(local, node);
-    const importName = new ImportNameInfo(
+    const importName = new ImportIdentifierInfo(
       local.name,
       local.name,
       ImportType.Default,
@@ -110,7 +110,7 @@ class Importer extends esrecurse.Visitor {
     const local = node.local;
 
     this.visitImport(local, node);
-    const importName = new ImportNameInfo(
+    const importName = new ImportIdentifierInfo(
       local.name,
       node.imported.name,
       ImportType.Identifier,

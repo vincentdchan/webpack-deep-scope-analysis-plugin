@@ -11,7 +11,7 @@ export enum ImportType {
   Namespace = 'Namespace',
 }
 
-export class ImportNameInfo {
+export class ImportIdentifierInfo {
   public mustBeImported: boolean = false;
 
   constructor(
@@ -22,12 +22,12 @@ export class ImportNameInfo {
 }
 
 export class ImportModuleInfo {
-  public readonly importNames: ImportNameInfo[] = [];
-  public readonly map: Map<string, ImportNameInfo> = new Map();
+  public readonly importNames: ImportIdentifierInfo[] = [];
+  public readonly map: Map<string, ImportIdentifierInfo> = new Map();
 
   public constructor(public readonly moduleName: string) {}
 
-  public addImportName(importName: ImportNameInfo) {
+  public addImportName(importName: ImportIdentifierInfo) {
     if (this.map.has(importName.localName)) {
       throw new TypeError('Variable is already exist');
     }
@@ -52,7 +52,7 @@ export class ImportManager {
 }
 
 export class LocalExportIdentifier {
-  public dependentImportNames?: ImportNameInfo[];
+  public dependentImportNames?: ImportIdentifierInfo[];
 
   public constructor(
     public readonly exportName: string,

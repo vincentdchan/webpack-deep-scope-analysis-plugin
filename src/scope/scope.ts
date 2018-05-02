@@ -128,7 +128,7 @@ function shouldBeStatically(def: Definition): boolean {
   );
 }
 
-export class Scope {
+export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
 
   public set: Map<string, Variable>;
   public taints: Map<string, boolean>;
@@ -149,7 +149,7 @@ export class Scope {
     scopeManager: ScopeManager,
     public readonly type: ScopeType,
     public readonly upper: Scope | null = null,
-    public readonly block: any,
+    public readonly block: BlockType,
     isMethodDefinition: boolean
   ) {
     /**
@@ -415,7 +415,7 @@ export class Scope {
     maybeImplicitGlobal?: ImplicitGlobal,
     partial?: boolean,
     init?: boolean
-  ) {
+  ): Reference | undefined {
     // because Array element may be null
     if (!node || node.type !== Syntax.Identifier) {
       return;

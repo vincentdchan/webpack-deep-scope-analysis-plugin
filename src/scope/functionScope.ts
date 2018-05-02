@@ -7,8 +7,7 @@ import { Variable } from '../variable';
 import { Reference } from '../reference';
 import * as ESTree from 'estree';
 
-export class FunctionScope extends Scope {
-
+export class FunctionScope extends Scope<ESTree.Function | ESTree.Program> {
   constructor(
     scopeManager: ScopeManager,
     upperScope: Scope,
@@ -71,7 +70,7 @@ export class FunctionScope extends Scope {
       return true;
     }
 
-    const bodyStart = this.block.body.range[0];
+    const bodyStart = this.block.body.range![0];
 
     // It's invalid resolution in the following case:
     return !(

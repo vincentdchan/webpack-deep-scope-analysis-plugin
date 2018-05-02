@@ -3,10 +3,34 @@ import { ScopeManager } from './scopeManager';
 import * as assert from 'assert';
 import { Referencer } from './referencer';
 import * as ESTree from 'estree';
-import { Scope, ModuleScope } from './scope';
+import { Scope, ModuleScope, ImportIdentifierInfo } from './scope';
 import { Reference } from './reference';
+import * as _ from 'lodash';
+
+export class ModuleScopeImportValueDependencyManager {
+
+  public readonly map: Map<string, ImportIdentifierInfo[]> = new Map();
+
+  addIdInfoToModuleScope(name: string, idInfo: ImportIdentifierInfo) {
+    if (this.map.has(name)) {
+      this.map.get(name)!.push(idInfo);
+    } else {
+      this.map.set(name, [idInfo]);
+    }
+  }
+
+  normalize() {
+    for (const [key, values] of this.map.entries()) {
+      const normalized = _.unionBy(values, 'localName');
+      this.map.set(key, normalized);
+    }
+  }
+
+}
 
 export class ModuleAnalyser {
+
+  private moduleScopeDependency = new ModuleScopeImportValueDependencyManager();
 
   constructor(
     public readonly name: string,
@@ -73,9 +97,16 @@ export class ModuleAnalyser {
             item.mustBeImported = true;
             break;
           }
+          const block = childScopeOfModule.block;
+          if (block.type === "FunctionDeclaration" && block.id !== null) {
+            // this import variable is in the scope of this module variable
+            this.moduleScopeDependency.addIdInfoToModuleScope(block.id.name, item);
+          }
         }
       })
     }
+
+    this.moduleScopeDependency.normalize();
   }
 
   private findChildScopeOfModule(ref: Reference): Scope | null {
