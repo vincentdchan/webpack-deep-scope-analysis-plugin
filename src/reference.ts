@@ -23,14 +23,18 @@ export class Reference {
   public tainted: boolean = false;
   public resolved: Variable | null;
 
+  public readonly writeExpr?: ESTree.Expression;
+  public readonly partial?: boolean;
+  public readonly init?: boolean;
+
   constructor(
     public readonly identifier: ESTree.Identifier,
     public readonly from: Scope,
     public readonly flag: number,
-    public readonly writeExpr?: ESTree.Expression,
+    writeExpr?: ESTree.Expression,
     public readonly maybeImplicitGlobal: ImplicitGlobal | null = null,
-    public readonly partial?: boolean,
-    public readonly init?: boolean,
+    partial?: boolean,
+    init?: boolean,
   ) {
     /**
      * Whether the reference comes from a dynamic scope (such as 'eval',
@@ -44,23 +48,9 @@ export class Reference {
     this.resolved = null;
 
     this.flag = flag;
-    if (this.isWrite()) {
-      /**
-       * If reference is writeable, this is the tree being written to it.
-       * @member {espreeNode} Reference#writeExpr
-       */
+    if (this.isWrite) {
       this.writeExpr = writeExpr;
-
-      /**
-       * Whether the Reference might refer to a partial value of writeExpr.
-       * @member {boolean} Reference#partial
-       */
       this.partial = partial;
-
-      /**
-       * Whether the Reference is to write of initialization.
-       * @member {boolean} Reference#init
-       */
       this.init = init;
     }
   }
@@ -68,42 +58,42 @@ export class Reference {
   /**
    * Whether the reference is static.
    */
-  isStatic() {
+  get isStatic() {
     return !this.tainted && this.resolved && this.resolved.scope.isStatic();
   }
 
   /**
    * Whether the reference is writeable.
    */
-  isWrite() {
+  get isWrite() {
     return !!(this.flag & Reference.WRITE);
   }
 
   /**
    * Whether the reference is readable.
    */
-  isRead() {
+  get isRead() {
     return !!(this.flag & Reference.READ);
   }
 
   /**
    * Whether the reference is read-only.
    */
-  isReadOnly() {
+  get isReadOnly() {
     return this.flag === Reference.READ;
   }
 
   /**
    * Whether the reference is write-only.
    */
-  isWriteOnly() {
+  get isWriteOnly() {
     return this.flag === Reference.WRITE;
   }
 
   /**
    * Whether the reference is read-write.
    */
-  isReadWrite() {
+  get isReadWrite() {
     return this.flag === Reference.RW;
   }
 }
