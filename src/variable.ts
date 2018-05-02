@@ -1,6 +1,7 @@
 import { Scope } from "./scope"
 import { Reference } from './reference'
 import { Definition } from "./definition"
+import * as ESTree from 'estree';
 
 export enum VariableType {
   CatchClause = 'CatchClause',
@@ -21,57 +22,16 @@ export enum VariableType {
  */
 export class Variable {
 
-  public name: string;
-  public scope: Scope;
-  public identifiers: any[];
-  public references: Reference[];
-  public defs: Definition[];
-  public tainted: boolean;
-  public stack: boolean;
+  public constructor(
+    public readonly name: string,
+    public readonly scope: Scope,
+  ) {}
 
-  constructor(name: string, scope: Scope) {
-    /**
-     * The variable name, as given in the source code.
-     * @member {String} Variable#name
-     */
-    this.name = name;
-
-    /**
-     * List of defining occurrences of this variable (like in 'var ...'
-     * statements or as parameter), as AST nodes.
-     * @member {espree.Identifier[]} Variable#identifiers
-     */
-    this.identifiers = [];
-
-    /**
-     * List of {@link Reference|references} of this variable (excluding parameter entries)
-     * in its defining scope and all nested scopes. For defining
-     * occurrences only see {@link Variable#defs}.
-     */
-    this.references = [];
-
-    /**
-     * List of defining occurrences of this variable (like in 'var ...'
-     * statements or as parameter), as custom objects.
-     * @member {Definition[]} Variable#defs
-     */
-    this.defs = [];
-
-    this.tainted = false;
-
-    /**
-     * Whether this is a stack variable.
-     * @member {boolean} Variable#stack
-     */
-    this.stack = true;
-
-    /**
-     * Reference to the enclosing Scope.
-     * @member {Scope} Variable#scope
-     */
-    this.scope = scope;
-
-  }
+  public readonly identifiers: ESTree.Identifier[] = [];
+  public readonly references: Reference[] = [];
+  public readonly defs: Definition[] = [];
+  public tainted: boolean = false;
+  public stack: boolean = true;
 
 }
 

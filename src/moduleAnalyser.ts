@@ -38,13 +38,13 @@ export class ModuleChildScopeInfo {
 
 export class ModuleAnalyser {
 
-  public readonly childFunctionScopeInfo: Map<string, ModuleChildScopeInfo> = new Map();
-
-  constructor(
+  public constructor(
     public readonly name: string,
     public readonly module: any,
     public scopeManager: ScopeManager | null = null,
-  ) { }
+  ) {}
+
+  public readonly childFunctionScopeInfo: Map<string, ModuleChildScopeInfo> = new Map();
 
   /**
    * Set the default options
