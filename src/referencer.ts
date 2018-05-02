@@ -90,7 +90,7 @@ class Importer extends esrecurse.Visitor {
       local.name,
       ImportType.Namespace,
     );
-    this.moduleInfo.addImportName(importName);
+    this.moduleInfo.addImportId(importName);
   }
 
   ImportDefaultSpecifier(node: ESTree.ImportDefaultSpecifier) {
@@ -103,7 +103,7 @@ class Importer extends esrecurse.Visitor {
       ImportType.Default,
 
     );
-    this.moduleInfo.addImportName(importName);
+    this.moduleInfo.addImportId(importName);
   }
 
   ImportSpecifier(node: ESTree.ImportSpecifier) {
@@ -115,7 +115,7 @@ class Importer extends esrecurse.Visitor {
       node.imported.name,
       ImportType.Identifier,
     );
-    this.moduleInfo.addImportName(importName);
+    this.moduleInfo.addImportId(importName);
   }
 }
 

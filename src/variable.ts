@@ -29,8 +29,6 @@ export class Variable {
   public tainted: boolean;
   public stack: boolean;
 
-  public moduleInfo: VariableModuleInfo | null;
-
   constructor(name: string, scope: Scope) {
     /**
      * The variable name, as given in the source code.
@@ -72,8 +70,6 @@ export class Variable {
      * @member {Scope} Variable#scope
      */
     this.scope = scope;
-
-    this.moduleInfo = null;
 
   }
 

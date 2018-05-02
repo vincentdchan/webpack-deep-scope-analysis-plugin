@@ -3,34 +3,42 @@ import { ScopeManager } from './scopeManager';
 import * as assert from 'assert';
 import { Referencer } from './referencer';
 import * as ESTree from 'estree';
-import { Scope, ModuleScope, ImportIdentifierInfo } from './scope';
+import { Scope, ModuleScope, ImportIdentifierInfo, ImportManager } from './scope';
 import { Reference } from './reference';
 import * as _ from 'lodash';
 
-export class ModuleScopeImportValueDependencyManager {
+export type RefTuple = [Reference, ImportIdentifierInfo | null];
 
-  public readonly map: Map<string, ImportIdentifierInfo[]> = new Map();
+export class ModuleChildFunctionScopeInfo {
 
-  addIdInfoToModuleScope(name: string, idInfo: ImportIdentifierInfo) {
-    if (this.map.has(name)) {
-      this.map.get(name)!.push(idInfo);
-    } else {
-      this.map.set(name, [idInfo]);
-    }
+  public readonly refsToModule: RefTuple[] = [];
+
+  constructor(
+    public readonly scope: Scope,
+    public readonly importManager: ImportManager,
+  ) {
+    this.traverse(scope);
   }
 
-  normalize() {
-    for (const [key, values] of this.map.entries()) {
-      const normalized = _.unionBy(values, 'localName');
-      this.map.set(key, normalized);
-    }
-  }
+  private traverse = (scope: Scope) => {  // find the reference to module
+    scope.references.forEach(ref => {
+      if (ref.resolved && ref.resolved.scope.type === 'module') {
+        const idName = ref.identifier.name;
+        let importNameInfo: ImportIdentifierInfo | null = null;
+        if (this.importManager.idMap.get(idName)) {
+          importNameInfo = this.importManager.idMap.get(idName)!;
+        }
+        this.refsToModule.push([ref, importNameInfo]);
+      }
+    });
+    scope.childScopes.forEach(this.traverse);
+  };
 
 }
 
 export class ModuleAnalyser {
 
-  private moduleScopeDependency = new ModuleScopeImportValueDependencyManager();
+  public readonly childFunctionScopeInfo: WeakMap<Scope, ModuleChildFunctionScopeInfo> = new WeakMap();
 
   constructor(
     public readonly name: string,
@@ -80,33 +88,23 @@ export class ModuleAnalyser {
 
     const { importManager, exportManager } = moduleScope;
 
-    for (const value of importManager.moduleMap.values()) {
-      value.importNames.forEach(item => {
-        const { localName } = item;
+    moduleScope.childScopes.forEach(childScope => {
 
-        const variable = moduleScope.set.get(localName);
+      if (
+        childScope.type === 'function' &&
+        childScope.block.type === 'FunctionDeclaration' &&
+        childScope.block.id
+      ) {
+        this.childFunctionScopeInfo.set(
+          childScope,
+          new ModuleChildFunctionScopeInfo(
+            childScope,
+            importManager,
+          ),
+        );
+      }
 
-        if (typeof variable === 'undefined') {
-          throw new TypeError('Variable is not found');
-        }
-
-        for (let i = 0; i < variable.references.length; i++) {
-          const ref = variable.references[i];
-          const childScopeOfModule = this.findChildScopeOfModule(ref);
-          if (childScopeOfModule === null) {
-            item.mustBeImported = true;
-            break;
-          }
-          const block = childScopeOfModule.block;
-          if (block.type === "FunctionDeclaration" && block.id !== null) {
-            // this import variable is in the scope of this module variable
-            this.moduleScopeDependency.addIdInfoToModuleScope(block.id.name, item);
-          }
-        }
-      })
-    }
-
-    this.moduleScopeDependency.normalize();
+    });
   }
 
   private findChildScopeOfModule(ref: Reference): Scope | null {

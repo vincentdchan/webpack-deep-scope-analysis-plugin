@@ -13,41 +13,59 @@ export enum ImportType {
 
 export class ImportIdentifierInfo {
   public mustBeImported: boolean = false;
+  public module?: ImportModuleInfo;
 
   constructor(
     public readonly localName: string,
     public readonly sourceName: string,
     public readonly type: ImportType,
   ) {}
+
+  get moduleName() {
+    return this.module!.moduleName;
+  }
+
 }
 
 export class ImportModuleInfo {
-  public readonly importNames: ImportIdentifierInfo[] = [];
+  public readonly importIds: ImportIdentifierInfo[] = [];
   public readonly map: Map<string, ImportIdentifierInfo> = new Map();
 
-  public constructor(public readonly moduleName: string) {}
+  public constructor(
+    public readonly moduleName: string,
+    public readonly manager: ImportManager,
+  ) {}
 
-  public addImportName(importName: ImportIdentifierInfo) {
-    if (this.map.has(importName.localName)) {
+  public addImportId(importId: ImportIdentifierInfo) {
+    if (this.map.has(importId.localName)) {
       throw new TypeError('Variable is already exist');
     }
 
-    this.map.set(importName.localName, importName);
-    this.importNames.push(importName);
+    importId.module = this;
+    this.map.set(importId.localName, importId);
+    this.importIds.push(importId);
+    this.manager.addImportId(importId);
   }
 }
 
 export class ImportManager {
   public readonly moduleMap: Map<string, ImportModuleInfo> = new Map();
+  public readonly ids: ImportIdentifierInfo[] = [];
+  public readonly idMap: Map<string, ImportIdentifierInfo> = new Map();
 
   public findOrCreateModuleInfo(name: string) {
     if (this.moduleMap.has(name)) {
       return this.moduleMap.get(name)!;
     } else {
-      const newModuleMap = new ImportModuleInfo(name);
+      const newModuleMap = new ImportModuleInfo(name, this);
       this.moduleMap.set(name, newModuleMap);
       return newModuleMap;
     }
+  }
+
+  public addImportId(importId: ImportIdentifierInfo) {
+    this.ids.push(importId);
+    this.idMap.set(importId.localName, importId);
   }
 }
 
