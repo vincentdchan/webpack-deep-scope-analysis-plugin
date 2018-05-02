@@ -13,12 +13,11 @@ import { ScopeManager } from './scopeManager';
 import {
   Scope,
   ModuleScope,
-  ImportModuleInfo,
   ImportIdentifierInfo,
   ImportType,
   LocalExportIdentifier,
-  ExternalModuleType,
-  ExternalIdentifierInfo,
+  ExternalInfo,
+  ExternalType,
 } from './scope';
 import * as ESTree from 'estree';
 
@@ -62,11 +61,6 @@ class Importer extends esrecurse.Visitor {
     return this.referencer.currentScope as ModuleScope;
   }
 
-  get moduleInfo() {
-    const sourceContent = this.declaration.source.value as string;
-    return this.moduleScope.importManager.findOrCreateModuleInfo(sourceContent);
-  }
-
   visitImport(id: ESTree.Identifier, specifier: ImportSpecifierNode) {
     this.referencer.visitPattern(id, undefined, pattern => {
       this.referencer.currentScope!.__define(
@@ -85,37 +79,39 @@ class Importer extends esrecurse.Visitor {
     const local = node.local;
 
     this.visitImport(local, node);
-    const importName = new ImportIdentifierInfo(
+    const importId = new ImportIdentifierInfo(
       local.name,
       local.name,
+      this.declaration.source.value as string,
       ImportType.Namespace,
     );
-    this.moduleInfo.addImportId(importName);
+    this.moduleScope.importManager.addImportId(importId);
   }
 
   ImportDefaultSpecifier(node: ESTree.ImportDefaultSpecifier) {
     const local = node.local;
 
     this.visitImport(local, node);
-    const importName = new ImportIdentifierInfo(
+    const importId = new ImportIdentifierInfo(
       local.name,
       local.name,
+      this.declaration.source.value as string,
       ImportType.Default,
-
     );
-    this.moduleInfo.addImportId(importName);
+    this.moduleScope.importManager.addImportId(importId);
   }
 
   ImportSpecifier(node: ESTree.ImportSpecifier) {
     const local = node.local;
 
     this.visitImport(local, node);
-    const importName = new ImportIdentifierInfo(
+    const importId = new ImportIdentifierInfo(
       local.name,
       node.imported.name,
+      this.declaration.source.value as string,
       ImportType.Identifier,
     );
-    this.moduleInfo.addImportId(importName);
+    this.moduleScope.importManager.addImportId(importId);
   }
 }
 
@@ -738,9 +734,11 @@ export class Referencer extends esrecurse.Visitor {
 
   ExportAllDeclaration(node: ESTree.ExportAllDeclaration) {
     const currentScope = this.currentScope as ModuleScope;
-    const externalModuleInfo = currentScope.exportManager.findOrCreateExternalModuleNameInfo(
-      node.source.value as string,
-      ExternalModuleType.Namespace,
+    currentScope.exportManager.externalInfos.push(
+      new ExternalInfo(
+        node.source.value as string,
+        ExternalType.All,
+      ),
     );
   }
 
@@ -748,8 +746,15 @@ export class Referencer extends esrecurse.Visitor {
     const local = node.local;
     const currentScope = this.currentScope as ModuleScope;
     if (this.exportingSource) {
-      const externalModuleInfo = currentScope.exportManager.findOrCreateExternalModuleNameInfo(this.exportingSource, ExternalModuleType.Identifier);
-      externalModuleInfo.addExternalIdentifierInfo(new ExternalIdentifierInfo(node.exported.name, node.local.name));
+      currentScope.exportManager.externalInfos.push(
+        new ExternalInfo(
+          this.exportingSource,
+          ExternalType.Identifier, {
+            exportName: node.exported.name,
+            sourceName: node.local.name,
+          },
+        ),
+      );
     } else {
       this.isExportingSpecifier = true;
       this.visit(local);
