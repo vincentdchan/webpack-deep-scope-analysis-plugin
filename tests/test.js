@@ -34,7 +34,9 @@ describe("test fixtures", function() {
       const expectJsonFilename = path.join(casePath, EXPECTED_FILENAME);
 
       it(`${inputDirName}/${caseDirName}`, function () {
-        const data = analyser.generateExportInfo();
+        const usedExportsFile = fs.readFileSync(usedExportsJsonFilename, 'utf8');
+        const usedExports = JSON.parse(usedExportsFile);
+        const data = analyser.generateExportInfo(usedExports);
         if (fs.existsSync(expectJsonFilename)) {
           const expectData = JSON.parse(fs.readFileSync(expectJsonFilename, 'utf8'));
           chai.expect(data).to.deep.equal(expectData);

@@ -9,7 +9,7 @@ import * as _ from 'lodash';
 
 export type RefTuple = [Reference, ImportIdentifierInfo | null];
 
-export class ModuleChildFunctionScopeInfo {
+export class ModuleChildScopeInfo {
 
   public readonly refsToModule: RefTuple[] = [];
 
@@ -38,7 +38,7 @@ export class ModuleChildFunctionScopeInfo {
 
 export class ModuleAnalyser {
 
-  public readonly childFunctionScopeInfo: WeakMap<Scope, ModuleChildFunctionScopeInfo> = new WeakMap();
+  public readonly childFunctionScopeInfo: Map<string, ModuleChildScopeInfo> = new Map();
 
   constructor(
     public readonly name: string,
@@ -83,15 +83,42 @@ export class ModuleAnalyser {
     return this.scopeManager!.scopes[1] as ModuleScope; // default 1 is module Scope; 
   }
 
-  public generateExportInfo() {
+  public generateExportInfo(usedExport: string[]) {
     const importManager = this.moduleScope.importManager;
-    const result: any = {};
-    for (const [name, module] of importManager.moduleMap.entries()) {
-      result[name] = module.importIds
-        .filter(item => item.mustBeImported)
-        .map(item => item.localName);
+    const result = importManager.ids.filter(item => item.mustBeImported).map(
+      item => ({ sourceName: item.sourceName, moduleName: item.moduleName})
+    );
+
+    const visitedScopeInfoSet = new WeakSet<ModuleChildScopeInfo>();
+
+    const visitScopeInfo = (scopeInfo: ModuleChildScopeInfo) => {
+      if (visitedScopeInfoSet.has(scopeInfo)) return;
+      visitedScopeInfoSet.add(scopeInfo);
+
+      scopeInfo.refsToModule.forEach(([ref, importIdInfo]) => {
+        if (importIdInfo !== null) {
+          result.push({
+            sourceName: importIdInfo.sourceName,
+            moduleName: importIdInfo.moduleName,
+          });
+        }
+
+        if (this.childFunctionScopeInfo.has(ref.identifier.name)) {
+          visitScopeInfo(this.childFunctionScopeInfo.get(ref.identifier.name)!);
+        }
+
+      });
+
     }
-    return result;
+
+    // write dependent variable
+    for (const [funName, scopeInfo] of this.childFunctionScopeInfo.entries()) {
+      if (usedExport.indexOf(funName) < 0) continue; // this function scope is no used
+      visitScopeInfo(scopeInfo);
+    }
+    return _.fromPairs(_.toPairs(_.groupBy(result, item => item.moduleName)).map(
+        ([key, tuples]) => [key, _.union(tuples.map(item => item.sourceName))],
+      ));
   }
 
   private analyzeImportExport() {
@@ -99,23 +126,39 @@ export class ModuleAnalyser {
 
     const { importManager, exportManager } = moduleScope;
 
-    moduleScope.childScopes
-      .filter(
-        childScope =>
-          childScope.type === 'function' &&
-          childScope.block.type === 'FunctionDeclaration' &&
-          childScope.block.id,
-      )
-      .forEach(childScope =>
-        this.childFunctionScopeInfo.set(
-          childScope,
-          new ModuleChildFunctionScopeInfo(childScope, importManager),
-        ),
-      );
+    const dependentScopesGroup = _.groupBy(moduleScope.childScopes, (childScope: Scope) =>
+        childScope.type === 'function' &&
+        childScope.block.type === 'FunctionDeclaration' &&
+        childScope.block.id !== null,
+    );
+
+    this.handleDependentScopes(dependentScopesGroup["true"]);
+    this.handleIndependentScopes(dependentScopesGroup["false"]);
 
     const exportRefMap = _.groupBy(moduleScope.references, 'isExport');
     this.handleExportReference(exportRefMap["true"]);
     this.handleNotExportReference(exportRefMap["false"]);
+  }
+
+  private handleDependentScopes(scopes?: Scope[]) {
+    if (_.isUndefined(scopes)) return;
+    scopes.forEach(scope => {
+      const idName = (scope.block as ESTree.FunctionDeclaration).id!.name;
+      const info = new ModuleChildScopeInfo(scope, this.moduleScope.importManager);
+      this.childFunctionScopeInfo.set(idName, info);
+    });
+  }
+
+  private handleIndependentScopes(scopes?: Scope[]) {
+    if (_.isUndefined(scopes)) return;
+    scopes.forEach(scope => {
+      const info = new ModuleChildScopeInfo(scope, this.moduleScope.importManager);
+      info.refsToModule.forEach(([ref, info]) => {
+        if (info !== null) {
+          info.mustBeImported = true;
+        }
+      })
+    })
   }
 
   private handleNotExportReference(refs?: Reference[]) {

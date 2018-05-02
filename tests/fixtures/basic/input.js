@@ -8,17 +8,5 @@ export function myFunction() {
   it();
 }
 
-function hisFunction() {
-  console.log("his");
-}
+const bb = eq();
 
-const what = function () {
-  eq();
-}
-
-const bb = hisFunction() + eq();
-
-export const aaa = hisFunction() + eq()
-
-export { hisFunction as myFun }
-export * from "./assert"

@@ -1,5 +1,5 @@
 {
   "./assert": [
-    "eq"
+    "equal"
   ]
 }
