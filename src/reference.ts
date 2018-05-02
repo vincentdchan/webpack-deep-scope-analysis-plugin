@@ -2,9 +2,10 @@ import { Scope } from "./scope";
 import { Variable } from "./variable";
 import * as ESTree from 'estree';
 
-const READ = 0x1;
-const WRITE = 0x2;
-const RW = READ | WRITE;
+const __READ = 0x1;
+const __WRITE = 0x2;
+const __RW = __READ | __WRITE;
+const __EXPORT = 0x4;
 
 export interface ImplicitGlobal {
   pattern: ESTree.Identifier,
@@ -16,9 +17,10 @@ export interface ImplicitGlobal {
  */
 export class Reference {
 
-  public static READ = READ;
-  public static WRITE = WRITE;
-  public static RW = RW;
+  public static READ = __READ;
+  public static WRITE = __WRITE;
+  public static RW = __RW;
+  public static EXPORT = __EXPORT;
 
   public tainted: boolean = false;
   public resolved: Variable | null;
@@ -95,5 +97,9 @@ export class Reference {
    */
   get isReadWrite() {
     return this.flag === Reference.RW;
+  }
+
+  get isExport() {
+    return this.flag === Reference.EXPORT;
   }
 }

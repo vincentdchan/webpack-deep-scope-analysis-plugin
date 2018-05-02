@@ -88,23 +88,40 @@ export class ModuleAnalyser {
 
     const { importManager, exportManager } = moduleScope;
 
-    moduleScope.childScopes.forEach(childScope => {
-
-      if (
-        childScope.type === 'function' &&
-        childScope.block.type === 'FunctionDeclaration' &&
-        childScope.block.id
-      ) {
+    moduleScope.childScopes
+      .filter(
+        childScope =>
+          childScope.type === 'function' &&
+          childScope.block.type === 'FunctionDeclaration' &&
+          childScope.block.id,
+      )
+      .forEach(childScope =>
         this.childFunctionScopeInfo.set(
           childScope,
-          new ModuleChildFunctionScopeInfo(
-            childScope,
-            importManager,
-          ),
-        );
-      }
+          new ModuleChildFunctionScopeInfo(childScope, importManager),
+        ),
+      );
 
-    });
+    const exportRefMap = _.groupBy(moduleScope.references, 'isExport');
+    this.handleExportReference(exportRefMap["true"]);
+    this.handleNotExportReference(exportRefMap["false"]);
+  }
+
+  private handleNotExportReference(refs?: Reference[]) {
+    if (_.isUndefined(refs)) return;
+    const ids = refs
+      .filter(ref => ref.resolved && ref.resolved.scope.type === 'module')
+      .map(ref =>
+        this.moduleScope.importManager.idMap.get(ref.resolved!.name),
+      )
+      .filter(idInfo => !_.isUndefined(idInfo)) as ImportIdentifierInfo[];
+
+    ids.forEach(idInfo => idInfo.mustBeImported = true);
+  }
+
+  private handleExportReference (refs?: Reference[]) {
+    if (_.isUndefined(refs)) return;
+
   }
 
   private findChildScopeOfModule(ref: Reference): Scope | null {

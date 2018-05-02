@@ -124,6 +124,7 @@ export class Referencer extends esrecurse.Visitor {
   public parent: Referencer | null = null;
   public isInnerMethodDefinition: boolean = false;
   public exportingSource: string | null = null;
+  public isExportingSpecifier: boolean = false;
 
   constructor(
     public readonly options: esrecurse.VisitorOption,
@@ -528,7 +529,15 @@ export class Referencer extends esrecurse.Visitor {
   }
 
   Identifier(node: ESTree.Identifier) {
-    this.currentScope!.__referencing(node);
+    this.currentScope!.__referencing(
+      node,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      this.isExportingSpecifier,
+    );
   }
 
   UpdateExpression(node: ESTree.UpdateExpression) {
@@ -742,11 +751,13 @@ export class Referencer extends esrecurse.Visitor {
       const externalModuleInfo = currentScope.exportManager.findOrCreateExternalModuleNameInfo(this.exportingSource, ExternalModuleType.Identifier);
       externalModuleInfo.addExternalIdentifierInfo(new ExternalIdentifierInfo(node.exported.name, node.local.name));
     } else {
+      this.isExportingSpecifier = true;
       this.visit(local);
       currentScope.exportManager.addLocalExportIdentifier(new LocalExportIdentifier(
         node.local.name,
         node.local,
       ));
+      this.isExportingSpecifier = false;
     }
   }
 

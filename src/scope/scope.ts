@@ -414,7 +414,8 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     writeExpr?: ESTree.Expression,
     maybeImplicitGlobal?: ImplicitGlobal,
     partial?: boolean,
-    init?: boolean
+    init?: boolean,
+    isExportingSpecifier: boolean = false,
   ): Reference | undefined {
     // because Array element may be null
     if (!node || node.type !== Syntax.Identifier) {
@@ -429,7 +430,7 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     const ref = new Reference(
       node,
       this,
-      assign || Reference.READ,
+      isExportingSpecifier ? Reference.EXPORT : (assign || Reference.READ),
       writeExpr,
       maybeImplicitGlobal,
       !!partial,
