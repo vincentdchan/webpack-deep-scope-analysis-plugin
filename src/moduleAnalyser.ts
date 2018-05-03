@@ -88,6 +88,7 @@ export class ModuleAnalyser {
 
     const { importManager, exportManager } = moduleScope;
 
+    // find all the function & class scopes under modules
     const dependentScopesGroup = R.groupBy(
       (childScope: Scope) => ((
         (childScope.type === 'function' || childScope.type === 'class') &&
@@ -100,6 +101,7 @@ export class ModuleAnalyser {
       moduleScope.childScopes, 
     );
 
+    // deep scope analysis of all child scopes
     const scopesHandler: Dictionary<(scopes: Scope[]) => void> = {
       "true": this.handleDependentScopes,
       "false": this.handleIndependentScopes,
@@ -109,13 +111,9 @@ export class ModuleAnalyser {
       ([key, scopes]) => scopesHandler[key](scopes)
     );
 
-    const refHandler: Dictionary<(refs: Reference[]) => void> = {
-      "true": this.handleExportReferences,
-      "false": this.handleNotExportReferences,
-    }
-    const exportRefMap = R.groupBy(ref => ref.isExport.toString() ,moduleScope.references);
-    R.toPairs(exportRefMap).map(
-      ([key, refs]) => refHandler[key](refs),
+    // find references that is not in export specifiers
+    this.handleNotExportReferences(
+      moduleScope.references.filter(ref => !ref.isExport)
     );
   }
 
@@ -148,6 +146,7 @@ export class ModuleAnalyser {
 
     }
 
+    // find all related scopes
     [...this.childFunctionScopeInfo.entries()]
       .filter(([funName, scopeInfo]) => R.contains(funName, moduleScopeIds))
       .forEach(([funName, scopeInfo]) => visitScopeInfo(scopeInfo));
@@ -181,15 +180,14 @@ export class ModuleAnalyser {
     .map(info => info.localName)
   }
 
-  private handleDependentScopes = (scopes: Scope[]) => {
+  private handleDependentScopes = (scopes: Scope[]) =>
     scopes.forEach(scope => {
       const idName = (scope.block as (ESTree.FunctionDeclaration | ESTree.ClassDeclaration)).id!.name;
       const info = new ModuleChildScopeInfo(scope, this.moduleScope.importManager);
       this.childFunctionScopeInfo.set(idName, info);
     });
-  }
 
-  private handleIndependentScopes = (scopes: Scope[]) => {
+  private handleIndependentScopes = (scopes: Scope[]) =>
     scopes.forEach(scope => {
       const info = new ModuleChildScopeInfo(scope, this.moduleScope.importManager);
       info.refsToModule.forEach(([ref, info]) => {
@@ -197,12 +195,7 @@ export class ModuleAnalyser {
           info.mustBeImported = true;
         }
       })
-    })
-  }
-
-  private handleExportReferences = (refs: Reference[]) => {
-    // pass
-  }
+    });
 
   private handleNotExportReferences = (refs: Reference[]) => {
     const ids = refs
