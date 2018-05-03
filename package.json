@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "test": "mocha ./tests"
+    "test": "mocha ./tests",
+    "debug": "mocha --inspect-brk ./tests"
   },
   "dependencies": {
     "estraverse": "^4.2.0",

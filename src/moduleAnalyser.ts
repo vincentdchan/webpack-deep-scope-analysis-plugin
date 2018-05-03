@@ -3,9 +3,10 @@ import { ScopeManager } from './scopeManager';
 import * as assert from 'assert';
 import { Referencer } from './referencer';
 import * as ESTree from 'estree';
-import { Scope, ModuleScope, ImportIdentifierInfo, ImportManager } from './scope';
+import { Scope, ModuleScope  } from './scope';
 import { Reference } from './reference';
 import * as R from 'ramda';
+import { ImportIdentifierInfo, ImportManager } from './importManager';
 
 export type RefTuple = [Reference, ImportIdentifierInfo | null];
 

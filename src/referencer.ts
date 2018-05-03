@@ -13,13 +13,10 @@ import { ScopeManager } from './scopeManager';
 import {
   Scope,
   ModuleScope,
-  ImportIdentifierInfo,
-  ImportType,
-  LocalExportIdentifier,
-  ExternalInfo,
-  ExternalType,
 } from './scope';
 import * as ESTree from 'estree';
+import { ImportIdentifierInfo, ImportType } from './importManager';
+import { ExternalInfo, LocalExportIdentifier, ExternalType } from './exportManager';
 
 function traverseIdentifierInPattern(
   options: esrecurse.VisitorOption,
