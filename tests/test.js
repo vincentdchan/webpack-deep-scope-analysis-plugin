@@ -1,7 +1,7 @@
 const acorn = require("acorn");
 const fs = require('fs');
 const path = require('path');
-const { ModuleAnalyser } = require('../lib/moduleAnalyser');
+const { ModuleAnalyser } = require('../lib/analyser');
 const chai = require('chai');
 const chaiJestDiff = require('chai-jest-diff').default;
  

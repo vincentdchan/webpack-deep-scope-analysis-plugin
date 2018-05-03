@@ -1,4 +1,4 @@
-import { ModuleAnalyser } from "./moduleAnalyser"
+import { ModuleAnalyser } from "./analyser"
 
 export class ModuleManager {
 

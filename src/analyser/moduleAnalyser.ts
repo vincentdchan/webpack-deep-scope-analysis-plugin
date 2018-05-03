@@ -1,44 +1,17 @@
-import { ScopeManager } from './scopeManager';
+import { ScopeManager } from '../scopeManager';
 
 import * as assert from 'assert';
-import { Referencer } from './referencer';
+import { Referencer } from '../referencer';
 import * as ESTree from 'estree';
-import { Scope, ModuleScope  } from './scope';
-import { Reference } from './reference';
+import { Scope, ModuleScope  } from '../scope';
+import { Reference } from '../reference';
 import * as R from 'ramda';
-import { ImportIdentifierInfo, ImportManager } from './importManager';
+import { ImportIdentifierInfo, ImportManager } from '../importManager';
+import { ModuleChildScopeInfo } from './moduleChildScopeInfo';
 
-export type RefTuple = [Reference, ImportIdentifierInfo | null];
 
 export interface Dictionary<T> {
   [index: string]: T,
-}
-
-export class ModuleChildScopeInfo {
-
-  public readonly refsToModule: RefTuple[] = [];
-
-  constructor(
-    public readonly scope: Scope,
-    public readonly importManager: ImportManager,
-  ) {
-    this.traverse(scope);
-  }
-
-  private traverse = (scope: Scope) => {  // find the reference to module
-    scope.references.forEach(ref => {
-      if (ref.resolved && ref.resolved.scope.type === 'module') {
-        const idName = ref.identifier.name;
-        let importNameInfo: ImportIdentifierInfo | null = null;
-        if (this.importManager.idMap.get(idName)) {
-          importNameInfo = this.importManager.idMap.get(idName)!;
-        }
-        this.refsToModule.push([ref, importNameInfo]);
-      }
-    });
-    scope.childScopes.forEach(this.traverse);
-  };
-
 }
 
 export class ModuleAnalyser {

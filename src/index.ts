@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { ScopeManager } from "./scopeManager";
 import { Variable } from "./variable";
 import { ModuleManager } from "./moduleManager";
-import { ModuleAnalyser } from "./moduleAnalyser";
+import { ModuleAnalyser } from "./analyser";
 import { Scope } from "./scope";
 // const version = require("./package.json").version;
 
