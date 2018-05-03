@@ -31,9 +31,13 @@ export class ExternalInfo {
 export class ExportManager {
   public readonly localIdMap: Map<string, LocalExportIdentifier> = new Map();
   public readonly externalInfos: ExternalInfo[] = [];
+  public exportDefaultDeclaration: ESTree.Node | null = null;
 
   public addLocalExportIdentifier(exportId: LocalExportIdentifier) {
     this.localIdMap.set(exportId.exportName, exportId);
+    if (exportId.exportName === 'default') {
+      this.exportDefaultDeclaration = exportId.node as ESTree.ExportDefaultDeclaration;
+    }
   }
 
   get localIds() {

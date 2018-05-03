@@ -727,6 +727,7 @@ export class Referencer extends esrecurse.Visitor {
     currentScope.exportManager.addLocalExportIdentifier(
       new LocalExportIdentifier('default', null, node.declaration),
     );
+    this.visit(node.declaration);
   }
 
   ExportAllDeclaration(node: ESTree.ExportAllDeclaration) {

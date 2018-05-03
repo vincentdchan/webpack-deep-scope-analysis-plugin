@@ -116,7 +116,38 @@ export class ModuleAnalyser {
         }
       }
     }
-    debugger;
+
+    const isFunction = (node: ESTree.Node) => R.contains(node.type, [
+      'FunctionDeclaration',
+      'ArrowFunctionExpression',
+    ]);
+    if (
+      exportManager.exportDefaultDeclaration
+    ) {
+      if (isFunction(exportManager.exportDefaultDeclaration)) {
+        const declaration = exportManager.exportDefaultDeclaration;
+        declarations.push(
+          new Declaration(
+            DeclarationType.Function,
+            'default',
+            declaration,
+            this.scopeManager!.__nodeToScope.get(declaration)!,
+          )
+        );
+      } else if (exportManager.exportDefaultDeclaration.type === 'Identifier') {
+        const id = exportManager.exportDefaultDeclaration as ESTree.Identifier;
+        const idName = id.name;
+        const variable = moduleScope.set.get(idName)!;
+        declarations.push(
+          new Declaration(
+            DeclarationType.Function,
+            'default',
+            id,
+            this.scopeManager!.__nodeToScope.get(variable.defs[0].node)!,
+          )
+        );
+      }
+    }
 
     // find all the function & class scopes under modules
     const dependentScopes = R.flatten<Scope>(
@@ -201,8 +232,8 @@ export class ModuleAnalyser {
     return usedExport.map(id =>
       this.moduleScope.exportManager.localIdMap.get(id)!
     )
-    .filter(info => info.localName !== null)
-    .map(info => info.localName)
+    .filter(info => info.localName !== null || info.exportName === 'default')
+    .map(info => (info.localName || info.exportName))
   }
 
   private handleDeclarations = (decls: Declaration[], visitedSet: WeakSet<Scope>) =>
