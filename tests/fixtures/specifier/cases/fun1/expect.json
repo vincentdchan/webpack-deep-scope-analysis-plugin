@@ -1,0 +1,6 @@
+{
+  "./assert": [
+    "deepEqual",
+    "equal"
+  ]
+}

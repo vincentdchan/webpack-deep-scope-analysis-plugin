@@ -5,9 +5,13 @@ import { Referencer } from './referencer';
 import * as ESTree from 'estree';
 import { Scope, ModuleScope, ImportIdentifierInfo, ImportManager } from './scope';
 import { Reference } from './reference';
-import * as _ from 'lodash';
+import * as R from 'ramda';
 
 export type RefTuple = [Reference, ImportIdentifierInfo | null];
+
+export interface Dictionary<T> {
+  [index: string]: T,
+}
 
 export class ModuleChildScopeInfo {
 
@@ -79,11 +83,44 @@ export class ModuleAnalyser {
     this.analyzeImportExport();
   }
 
-  get moduleScope() {
-    return this.scopeManager!.scopes[1] as ModuleScope; // default 1 is module Scope; 
+  private analyzeImportExport() {
+    const moduleScope = this.moduleScope;
+
+    const { importManager, exportManager } = moduleScope;
+
+    const dependentScopesGroup = R.groupBy(
+      (childScope: Scope) => ((
+        (childScope.type === 'function' || childScope.type === 'class') &&
+        (
+          childScope.block.type === 'FunctionDeclaration'  ||
+          childScope.block.type === 'ClassDeclaration'
+        ) &&
+        childScope.block.id !== null
+      ).toString()),
+      moduleScope.childScopes, 
+    );
+
+    const scopesHandler: Dictionary<(scopes: Scope[]) => void> = {
+      "true": this.handleDependentScopes,
+      "false": this.handleIndependentScopes,
+    }
+
+    R.toPairs(dependentScopesGroup).map(
+      ([key, scopes]) => scopesHandler[key](scopes)
+    );
+
+    const refHandler: Dictionary<(refs: Reference[]) => void> = {
+      "true": this.handleExportReferences,
+      "false": this.handleNotExportReferences,
+    }
+    const exportRefMap = R.groupBy(ref => ref.isExport.toString() ,moduleScope.references);
+    R.toPairs(exportRefMap).map(
+      ([key, refs]) => refHandler[key](refs),
+    );
   }
 
   public generateExportInfo(usedExport: string[]) {
+    const moduleScopeIds = this.findExportLocalNames(usedExport);
     const importManager = this.moduleScope.importManager;
     const result = importManager.ids.filter(item => item.mustBeImported).map(
       item => ({ sourceName: item.sourceName, moduleName: item.moduleName})
@@ -111,40 +148,40 @@ export class ModuleAnalyser {
 
     }
 
-    // write dependent variable
-    for (const [funName, scopeInfo] of this.childFunctionScopeInfo.entries()) {
-      if (usedExport.indexOf(funName) < 0) continue; // this function scope is no used
-      visitScopeInfo(scopeInfo);
-    }
-    return _.fromPairs(_.toPairs(_.groupBy(result, item => item.moduleName)).map(
-        ([key, tuples]) => [key, _.union(tuples.map(item => item.sourceName))],
-      ));
+    [...this.childFunctionScopeInfo.entries()]
+      .filter(([funName, scopeInfo]) => R.contains(funName, moduleScopeIds))
+      .forEach(([funName, scopeInfo]) => visitScopeInfo(scopeInfo));
+
+    return R.toPairs<string[]>(result.reduce(  // to pairs
+        (acc: Dictionary<string[]>, item) => {  // group by moduleName
+          const { moduleName } = item;
+          (acc[moduleName] || (acc[moduleName] = [])).push(item.sourceName);  // check the map and push
+          return acc;
+        },
+        {},
+      ))
+      .map(([moduleName, sourceNames]): [string, string[]] => [ // uniq the sourceNames
+        moduleName,
+        R.uniq(sourceNames),
+      ])
+      .reduce(  // from tuples to map
+        (acc: Dictionary<string[]>, [moduleName, sourceNames]) => {
+          acc[moduleName] = sourceNames;
+          return acc;
+        },
+        {}
+      );
   }
 
-  private analyzeImportExport() {
-    const moduleScope = this.moduleScope;
-
-    const { importManager, exportManager } = moduleScope;
-
-    const dependentScopesGroup = _.groupBy(moduleScope.childScopes, (childScope: Scope) =>
-        (childScope.type === 'function' || childScope.type === 'class') &&
-        (
-          childScope.block.type === 'FunctionDeclaration'  ||
-          childScope.block.type === 'ClassDeclaration'
-        ) &&
-        childScope.block.id !== null,
-    );
-
-    this.handleDependentScopes(dependentScopesGroup["true"]);
-    this.handleIndependentScopes(dependentScopesGroup["false"]);
-
-    const exportRefMap = _.groupBy(moduleScope.references, 'isExport');
-    this.handleExportReference(exportRefMap["true"]);
-    this.handleNotExportReference(exportRefMap["false"]);
+  private findExportLocalNames(usedExport: string[]) {
+    return usedExport.map(id =>
+      this.moduleScope.exportManager.localIdMap.get(id)!
+    )
+    .filter(info => info.localName !== null)
+    .map(info => info.localName)
   }
 
-  private handleDependentScopes(scopes?: Scope[]) {
-    if (_.isUndefined(scopes)) return;
+  private handleDependentScopes = (scopes: Scope[]) => {
     scopes.forEach(scope => {
       const idName = (scope.block as (ESTree.FunctionDeclaration | ESTree.ClassDeclaration)).id!.name;
       const info = new ModuleChildScopeInfo(scope, this.moduleScope.importManager);
@@ -152,8 +189,7 @@ export class ModuleAnalyser {
     });
   }
 
-  private handleIndependentScopes(scopes?: Scope[]) {
-    if (_.isUndefined(scopes)) return;
+  private handleIndependentScopes = (scopes: Scope[]) => {
     scopes.forEach(scope => {
       const info = new ModuleChildScopeInfo(scope, this.moduleScope.importManager);
       info.refsToModule.forEach(([ref, info]) => {
@@ -164,21 +200,19 @@ export class ModuleAnalyser {
     })
   }
 
-  private handleNotExportReference(refs?: Reference[]) {
-    if (_.isUndefined(refs)) return;
+  private handleExportReferences = (refs: Reference[]) => {
+    // pass
+  }
+
+  private handleNotExportReferences = (refs: Reference[]) => {
     const ids = refs
       .filter(ref => ref.resolved && ref.resolved.scope.type === 'module')
       .map(ref =>
         this.moduleScope.importManager.idMap.get(ref.resolved!.name),
       )
-      .filter(idInfo => !_.isUndefined(idInfo)) as ImportIdentifierInfo[];
+      .filter(idInfo => typeof idInfo !== 'undefined') as ImportIdentifierInfo[];
 
     ids.forEach(idInfo => idInfo.mustBeImported = true);
-  }
-
-  private handleExportReference (refs?: Reference[]) {
-    if (_.isUndefined(refs)) return;
-
   }
 
   private findChildScopeOfModule(ref: Reference): Scope | null {
@@ -222,6 +256,10 @@ export class ModuleAnalyser {
       }
     }
     return target;
+  }
+
+  get moduleScope() {
+    return this.scopeManager!.scopes[1] as ModuleScope; // default 1 is module Scope; 
   }
 
 }

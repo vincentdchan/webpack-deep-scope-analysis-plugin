@@ -10,14 +10,14 @@
   },
   "dependencies": {
     "estraverse": "^4.2.0",
-    "lodash": "^4.17.10",
+    "ramda": "^0.25.0",
     "webpack": "^4.1.0",
     "webpack-cli": "^2.0.10"
   },
   "devDependencies": {
     "@types/estree": "^0.0.39",
-    "@types/lodash": "^4.14.108",
     "@types/node": "^9.6.0",
+    "@types/ramda": "^0.25.24",
     "acorn": "^5.5.3",
     "chai": "^4.1.2",
     "chai-jest-diff": "^1.0.2",

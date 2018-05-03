@@ -40,8 +40,10 @@ export class LocalExportIdentifier {
 
   public constructor(
     public readonly exportName: string,
+    public readonly localName: string | null,
     public readonly node: ESTree.Node,
   ) {}
+
 }
 
 export enum ExternalType {
@@ -89,8 +91,9 @@ export class ModuleScope extends Scope {
   
   public __define(node: ESTree.Node, def: Definition): Variable | null {
     const ancestor = super.__define(node, def);
-    if (ancestor !== null) {
+    if (ancestor !== null && this.isExportingNamedDeclaration) {
       this.exportManager.addLocalExportIdentifier(new LocalExportIdentifier(
+        ancestor.name,
         ancestor.name,
         ancestor.defs[0].node
       ));

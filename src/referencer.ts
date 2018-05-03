@@ -728,7 +728,7 @@ export class Referencer extends esrecurse.Visitor {
     }
 
     currentScope.exportManager.addLocalExportIdentifier(
-      new LocalExportIdentifier('default', node.declaration),
+      new LocalExportIdentifier('default', null, node.declaration),
     );
   }
 
@@ -759,6 +759,7 @@ export class Referencer extends esrecurse.Visitor {
       this.isExportingSpecifier = true;
       this.visit(local);
       currentScope.exportManager.addLocalExportIdentifier(new LocalExportIdentifier(
+        node.exported.name,
         node.local.name,
         node.local,
       ));
