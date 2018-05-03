@@ -34,18 +34,3 @@ export class Variable {
   public stack: boolean = true;
 
 }
-
-export class VariableModuleInfo {
-
-  public isImported: boolean = false;
-  public isExported: boolean = false;
-  public isReassigned: boolean = false;
-  public importSourceName: string | undefined = undefined;
-  public exportAliasName: string | undefined = undefined;
-  private __includeVariables: Variable[] = [];
-
-  get includeVariables() {
-    return this.__includeVariables;
-  }
-
-}

@@ -8,7 +8,9 @@ import { Reference } from '../reference';
 import * as R from 'ramda';
 import { ImportIdentifierInfo, ImportManager } from '../importManager';
 import { ModuleChildScopeInfo } from './moduleChildScopeInfo';
-
+import { Variable } from '../variable';
+import { Definition } from '../definition';
+import { Declaration, DeclarationType } from './Declaration';
 
 export interface Dictionary<T> {
   [index: string]: T,
@@ -62,28 +64,77 @@ export class ModuleAnalyser {
 
     const { importManager, exportManager } = moduleScope;
 
+    const declarations: Declaration[] = [];
+    for (let i = 0; i < moduleScope.variables.length; i++) {
+      const variable = moduleScope.variables[i];
+      const def = variable.defs[0];
+      if (def.node.type === 'FunctionDeclaration') {
+        declarations.push(
+          new Declaration(
+            DeclarationType.Function,
+            variable.name,
+            def.node,
+            this.scopeManager!.__nodeToScope.get(def.node)!,
+          ),
+        );
+      } else if (def.node.type === 'ClassDeclaration') {
+        declarations.push(
+          new Declaration(
+            DeclarationType.Class,
+            variable.name,
+            def.node,
+            this.scopeManager!.__nodeToScope.get(def.node)!,
+          ),
+        );
+      } else if (
+        def.kind === 'const' &&
+        def.node.type === 'VariableDeclarator' && 
+        def.node.init
+      ) {
+        const { init } = def.node;
+        if (init.type === 'ClassExpression') {
+          declarations.push(
+            new Declaration(
+              DeclarationType.Class,
+              variable.name,
+              init,
+              this.scopeManager!.__nodeToScope.get(init)!,
+            ),
+          );
+        } else if (
+          init.type === 'FunctionExpression' ||
+          init.type === 'ArrowFunctionExpression'
+        ) {
+          declarations.push(
+            new Declaration(
+              DeclarationType.Function,
+              variable.name,
+              init,
+              this.scopeManager!.__nodeToScope.get(init)!,
+            ),
+          );
+        }
+      }
+    }
+    debugger;
+
     // find all the function & class scopes under modules
-    const dependentScopesGroup = R.groupBy(
-      (childScope: Scope) => ((
-        (childScope.type === 'function' || childScope.type === 'class') &&
-        (
-          childScope.block.type === 'FunctionDeclaration'  ||
-          childScope.block.type === 'ClassDeclaration'
-        ) &&
-        childScope.block.id !== null
-      ).toString()),
-      moduleScope.childScopes, 
+    const dependentScopes = R.flatten<Scope>(
+      R.map<Declaration, Scope[]>(
+        decl => decl.scopes,
+        declarations,
+      ),
     );
 
     // deep scope analysis of all child scopes
-    const scopesHandler: Dictionary<(scopes: Scope[]) => void> = {
-      "true": this.handleDependentScopes,
-      "false": this.handleIndependentScopes,
-    }
+    const visitedSet = new WeakSet();
+    this.handleDeclarations(declarations, visitedSet);
 
-    R.toPairs(dependentScopesGroup).map(
-      ([key, scopes]) => scopesHandler[key](scopes)
-    );
+    const independentScopes = R.filter<Scope>(
+      item => !visitedSet.has(item),
+      moduleScope.childScopes,
+    )
+    this.handleIndependentScopes(independentScopes);
 
     // find references that is not in export specifiers
     this.handleNotExportReferences(
@@ -154,11 +205,16 @@ export class ModuleAnalyser {
     .map(info => info.localName)
   }
 
-  private handleDependentScopes = (scopes: Scope[]) =>
-    scopes.forEach(scope => {
-      const idName = (scope.block as (ESTree.FunctionDeclaration | ESTree.ClassDeclaration)).id!.name;
-      const info = new ModuleChildScopeInfo(scope, this.moduleScope.importManager);
-      this.childFunctionScopeInfo.set(idName, info);
+  private handleDeclarations = (decls: Declaration[], visitedSet: WeakSet<Scope>) =>
+    decls.forEach(decl => {
+      decl.scopes.forEach(scope => {
+        visitedSet.add(scope);
+        const info = new ModuleChildScopeInfo(
+          scope,
+          this.moduleScope.importManager,
+        );
+        this.childFunctionScopeInfo.set(decl.name, info);
+      })
     });
 
   private handleIndependentScopes = (scopes: Scope[]) =>
