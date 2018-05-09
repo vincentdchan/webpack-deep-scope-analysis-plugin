@@ -40,4 +40,7 @@ class WebpackDeepScopeAnalysisPlugin {
 
 }
 
-export = WebpackDeepScopeAnalysisPlugin;
+export {
+  WebpackDeepScopeAnalysisPlugin as default,
+  ModuleAnalyser,
+}

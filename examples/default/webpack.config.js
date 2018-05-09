@@ -1,5 +1,5 @@
 const path = require('path');
-const WebpackDeepScopeAnalysisPlugin = require('../../lib');
+const WebpackDeepScopeAnalysisPlugin = require('../../lib').default;
 const webpackMajorVersion = require('webpack/package.json').version.split('.')[0];
 
 module.exports = {
