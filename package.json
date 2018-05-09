@@ -1,9 +1,10 @@
 {
   "name": "webpack-deep-scope-analysis",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "main": "lib/index.js",
   "author": "Vincent Chan <cdzos97@gmail.com>",
   "license": "MIT",
+  "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "mocha ./tests",
