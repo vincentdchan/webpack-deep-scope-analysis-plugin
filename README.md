@@ -1,9 +1,12 @@
 # [WIP] Webpack Deep Scope Analysis Plugin
 
+![](https://travis-ci.org/vincentdchan/webpack-deep-scope-analysis-plugin.svg?branch=master)
+
 **Work in progress!** A webpack plugin for deep scope analysis.
 It's a project of [GSoC 2018](https://summerofcode.withgoogle.com/organizations/4657420148670464/#projects) webpack organization.
 
 Student: [@Vincent](https://github.com/vincentdchan)   Mentor: [@Tobias](https://github.com/sokra)
+
 Demo: [https://vincentdchan.github.io/webpack-deep-scope-demo/](https://vincentdchan.github.io/webpack-deep-scope-demo/)
 
 # Progress
