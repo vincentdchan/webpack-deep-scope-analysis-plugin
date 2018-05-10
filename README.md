@@ -4,11 +4,12 @@
 It's a project of [GSoC 2018](https://summerofcode.withgoogle.com/organizations/4657420148670464/#projects) webpack organization.
 
 Student: [@Vincent](https://github.com/vincentdchan)   Mentor: [@Tobias](https://github.com/sokra)
+Demo: [https://vincentdchan.github.io/webpack-deep-scope-demo/](https://vincentdchan.github.io/webpack-deep-scope-demo/)
 
 # Progress
 
 - [x] Use [escope](https://github.com/estools/escope) to analyse the scopes of code
-- [ ] Use scopes information to generate the information about the import and export variables.
+- [x] Use scopes information to generate the information about the import and export variables.
 - [ ] Use the informations to do tree shaking for webpack
 
 # About Escope
