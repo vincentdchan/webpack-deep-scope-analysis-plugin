@@ -296,7 +296,7 @@ export class ModuleAnalyser {
         );
         this.childFunctionScopeInfo.set(decl.name, info);
       });
-    });
+    })
 
   private handleIndependentScopes = (scopes: Scope[]) =>
     scopes.forEach(scope => {
@@ -309,7 +309,7 @@ export class ModuleAnalyser {
           info.mustBeImported = true;
         }
       });
-    });
+    })
 
   private handleNotExportReferences = (refs: Reference[]) => {
     const moduleScopeRefs = refs.filter(
@@ -319,19 +319,15 @@ export class ModuleAnalyser {
 
     moduleScopeRefs.forEach(ref => {
       const resolvedName = ref.resolved!.name;
-      let importId: ImportIdentifierInfo | undefined;
-      let moduleChildrenInfo: ModuleChildScopeInfo | undefined;
-      if (
-        (importId = this.moduleScope.importManager.idMap.get(
-          resolvedName,
-        ))
-      ) {
+      const importId = this.moduleScope.importManager.idMap.get(
+        resolvedName,
+      );
+      const moduleChildrenInfo = this.childFunctionScopeInfo.get(
+        resolvedName,
+      );
+      if (importId) {
         importId.mustBeImported = true;
-      } else if (
-        (moduleChildrenInfo = this.childFunctionScopeInfo.get(
-          resolvedName,
-        )) && !ref.init && !ref.isExport
-      ) {
+      } else if (moduleChildrenInfo && !ref.init && !ref.isExport) {
         moduleChildrenInfo.refsToModule.forEach(
           ([ref, info]) => {
             if (info !== null) {
@@ -341,7 +337,7 @@ export class ModuleAnalyser {
         );
       }
     });
-  };
+  }
 
   private findChildScopeOfModule(ref: Reference): Scope | null {
     let scope = ref.from;
