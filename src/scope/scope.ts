@@ -388,7 +388,7 @@ export class Scope<
     maybeImplicitGlobal?: ImplicitGlobal,
     partial?: boolean,
     init?: boolean,
-    isExportingSpecifier: boolean = false,
+    isExportingFromLocal: boolean = false,
   ): Reference | undefined {
     // because Array element may be null
     if (!node || node.type !== Syntax.Identifier) {
@@ -403,7 +403,7 @@ export class Scope<
     const ref = new Reference(
       node,
       this,
-      isExportingSpecifier
+      isExportingFromLocal
         ? Reference.EXPORT
         : assign || Reference.READ,
       writeExpr,

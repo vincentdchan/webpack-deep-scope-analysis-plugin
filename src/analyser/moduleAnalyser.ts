@@ -262,7 +262,7 @@ export class ModuleAnalyser {
           acc: Dictionary<string[]>,
           [moduleName, sourceNames],
         ) => {
-          acc[moduleName] = sourceNames;
+          acc[moduleName] = sourceNames.sort();
           return acc;
         },
         {},
@@ -296,7 +296,7 @@ export class ModuleAnalyser {
         );
         this.childFunctionScopeInfo.set(decl.name, info);
       });
-    })
+    });
 
   private handleIndependentScopes = (scopes: Scope[]) =>
     scopes.forEach(scope => {
@@ -309,25 +309,39 @@ export class ModuleAnalyser {
           info.mustBeImported = true;
         }
       });
-    })
+    });
 
   private handleNotExportReferences = (refs: Reference[]) => {
-    const ids = refs
-      .filter(
-        ref =>
-          ref.resolved && ref.resolved.scope.type === "module",
-      )
-      .map(ref =>
-        this.moduleScope.importManager.idMap.get(
-          ref.resolved!.name,
-        ),
-      )
-      .filter(
-        idInfo => typeof idInfo !== "undefined",
-      ) as ImportIdentifierInfo[];
+    const moduleScopeRefs = refs.filter(
+      ref =>
+        ref.resolved && ref.resolved.scope.type === "module",
+    );
 
-    ids.forEach(idInfo => (idInfo.mustBeImported = true));
-  }
+    moduleScopeRefs.forEach(ref => {
+      const resolvedName = ref.resolved!.name;
+      let importId: ImportIdentifierInfo | undefined;
+      let moduleChildrenInfo: ModuleChildScopeInfo | undefined;
+      if (
+        (importId = this.moduleScope.importManager.idMap.get(
+          resolvedName,
+        ))
+      ) {
+        importId.mustBeImported = true;
+      } else if (
+        (moduleChildrenInfo = this.childFunctionScopeInfo.get(
+          resolvedName,
+        )) && !ref.init && !ref.isExport
+      ) {
+        moduleChildrenInfo.refsToModule.forEach(
+          ([ref, info]) => {
+            if (info !== null) {
+              info.mustBeImported = true;
+            }
+          },
+        );
+      }
+    });
+  };
 
   private findChildScopeOfModule(ref: Reference): Scope | null {
     let scope = ref.from;

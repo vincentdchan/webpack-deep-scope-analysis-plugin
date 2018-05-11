@@ -135,7 +135,7 @@ export class Referencer extends esrecurse.Visitor {
   public parent: Referencer | null = null;
   public isInnerMethodDefinition: boolean = false;
   public exportingSource: string | null = null;
-  public isExportingSpecifier: boolean = false;
+  public isExportingFromLocal: boolean = false;
 
   public constructor(
     public readonly options: esrecurse.VisitorOption,
@@ -604,7 +604,7 @@ export class Referencer extends esrecurse.Visitor {
       undefined,
       undefined,
       undefined,
-      this.isExportingSpecifier,
+      this.isExportingFromLocal,
     );
   }
 
@@ -822,7 +822,13 @@ export class Referencer extends esrecurse.Visitor {
         node.declaration,
       ),
     );
-    this.visit(node.declaration);
+    if (node.declaration.type === "Identifier") {
+      this.isExportingFromLocal = true;
+      this.visit(node.declaration);
+      this.isExportingFromLocal = false;
+    } else {
+      this.visit(node.declaration);
+    }
   }
 
   public ExportAllDeclaration(
@@ -852,7 +858,7 @@ export class Referencer extends esrecurse.Visitor {
         ),
       );
     } else {
-      this.isExportingSpecifier = true;
+      this.isExportingFromLocal = true;
       this.visit(local);
       currentScope.exportManager.addLocalExportIdentifier(
         new LocalExportIdentifier(
@@ -861,7 +867,7 @@ export class Referencer extends esrecurse.Visitor {
           node.local,
         ),
       );
-      this.isExportingSpecifier = false;
+      this.isExportingFromLocal = false;
     }
   }
 
