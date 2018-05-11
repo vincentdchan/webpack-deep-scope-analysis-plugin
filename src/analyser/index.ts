@@ -1,2 +1,1 @@
-
-export * from './moduleAnalyser'
+export * from "./moduleAnalyser";

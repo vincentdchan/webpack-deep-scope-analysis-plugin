@@ -1,25 +1,24 @@
-import * as assert from 'assert';
-import { Variable, VariableType } from '../variable';
-import { Reference, ImplicitGlobal } from '../reference';
-import { ScopeManager } from '../scopeManager';
-import { Definition } from '../definition';
-import { Syntax } from 'estraverse';
-import * as ESTree from 'estree';
+import * as assert from "assert";
+import { Variable, VariableType } from "../variable";
+import { Reference, ImplicitGlobal } from "../reference";
+import { ScopeManager } from "../scopeManager";
+import { Definition } from "../definition";
+import { Syntax } from "estraverse";
+import * as ESTree from "estree";
 
 export type ScopeType =
-| 'TDZ'
-| 'module'
-| 'block'
-| 'switch'
-| 'function'
-| 'catch'
-| 'with'
-| 'function'
-| 'class'
-| 'global'
-| 'function-expression-name'
-| 'for'
-
+  | "TDZ"
+  | "module"
+  | "block"
+  | "switch"
+  | "function"
+  | "catch"
+  | "with"
+  | "function"
+  | "class"
+  | "global"
+  | "function-expression-name"
+  | "for";
 
 /**
  * Test if scope is strict
@@ -46,15 +45,15 @@ function isStrictScope(
     return true;
   }
 
-  if (scope.type === 'class' || scope.type === 'module') {
+  if (scope.type === "class" || scope.type === "module") {
     return true;
   }
 
-  if (scope.type === 'block' || scope.type === 'switch') {
+  if (scope.type === "block" || scope.type === "switch") {
     return false;
   }
 
-  if (scope.type === 'function') {
+  if (scope.type === "function") {
     if (block.type === Syntax.Program) {
       body = block;
     } else {
@@ -64,7 +63,7 @@ function isStrictScope(
     if (!body) {
       return false;
     }
-  } else if (scope.type === 'global') {
+  } else if (scope.type === "global") {
     body = block;
   } else {
     return false;
@@ -78,7 +77,10 @@ function isStrictScope(
       if (stmt.type !== Syntax.DirectiveStatement) {
         break;
       }
-      if (stmt.raw === '"use strict"' || stmt.raw === "'use strict'") {
+      if (
+        stmt.raw === '"use strict"' ||
+        stmt.raw === "'use strict'"
+      ) {
         return true;
       }
     }
@@ -91,15 +93,21 @@ function isStrictScope(
       }
       const expr = stmt.expression;
 
-      if (expr.type !== Syntax.Literal || typeof expr.value !== 'string') {
+      if (
+        expr.type !== Syntax.Literal ||
+        typeof expr.value !== "string"
+      ) {
         break;
       }
       if (expr.raw !== null && expr.raw !== undefined) {
-        if (expr.raw === '"use strict"' || expr.raw === "'use strict'") {
+        if (
+          expr.raw === '"use strict"' ||
+          expr.raw === "'use strict'"
+        ) {
           return true;
         }
       } else {
-        if (expr.value === 'use strict') {
+        if (expr.value === "use strict") {
           return true;
         }
       }
@@ -108,8 +116,10 @@ function isStrictScope(
   return false;
 }
 
-
-function registerScope(scopeManager: ScopeManager, scope: Scope): void {
+function registerScope(
+  scopeManager: ScopeManager,
+  scope: Scope,
+): void {
   scopeManager.scopes.push(scope);
 
   const scopes = scopeManager.__nodeToScope.get(scope.block);
@@ -124,12 +134,14 @@ function registerScope(scopeManager: ScopeManager, scope: Scope): void {
 function shouldBeStatically(def: Definition): boolean {
   return (
     def.type === VariableType.ClassName ||
-    (def.type === VariableType.Variable && (def.parent as ESTree.VariableDeclaration).kind !== 'var')
+    (def.type === VariableType.Variable &&
+      (def.parent as ESTree.VariableDeclaration).kind !== "var")
   );
 }
 
-export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
-
+export class Scope<
+  BlockType extends ESTree.Node = ESTree.Node
+> {
   public dynamic: boolean;
   public variableScope: Scope;
   public functionExpressionScope: boolean = false;
@@ -151,7 +163,7 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     public readonly type: ScopeType,
     public readonly upper: Scope | null = null,
     public readonly block: BlockType,
-    isMethodDefinition: boolean
+    isMethodDefinition: boolean,
   ) {
     /**
      * Generally, through the lexical scoping of JS you can always know
@@ -162,7 +174,8 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
      * bindings in this or its parent scopes.
      * All those scopes are considered 'dynamic'.
      */
-    this.dynamic = this.type === 'global' || this.type === 'with';
+    this.dynamic =
+      this.type === "global" || this.type === "with";
 
     /**
      * For 'global' and 'function' scopes, this is a self-reference. For
@@ -170,9 +183,9 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
      * parent scope.
      */
     this.variableScope =
-      this.type === 'global' ||
-      this.type === 'function' ||
-      this.type === 'module'
+      this.type === "global" ||
+      this.type === "function" ||
+      this.type === "module"
         ? this
         : this.upper!.variableScope;
 
@@ -196,11 +209,11 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     registerScope(scopeManager, this);
   }
 
-  __shouldStaticallyClose(scopeManager: ScopeManager) {
+  public __shouldStaticallyClose(scopeManager: ScopeManager) {
     return !this.dynamic || scopeManager.__isOptimistic();
   }
 
-  __shouldStaticallyCloseForGlobal(ref: Reference) {
+  public __shouldStaticallyCloseForGlobal(ref: Reference) {
     // On global scope, let/const/class declarations should be resolved statically.
     const name = ref.identifier.name;
 
@@ -214,13 +227,13 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     return defs.length > 0 && defs.every(shouldBeStatically);
   }
 
-  __staticCloseRef(ref: Reference) {
+  public __staticCloseRef(ref: Reference) {
     if (!this.__resolve(ref)) {
       this.__delegateToUpperScope(ref);
     }
   }
 
-  __dynamicCloseRef(ref: Reference) {
+  public __dynamicCloseRef(ref: Reference) {
     // notify all names are through to global
     let current: Scope = this;
 
@@ -230,7 +243,7 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     } while (current);
   }
 
-  __globalCloseRef(ref: Reference) {
+  public __globalCloseRef(ref: Reference) {
     // let/const/class declarations should be resolved statically.
     // others should be resolved dynamically.
     if (this.__shouldStaticallyCloseForGlobal(ref)) {
@@ -240,12 +253,12 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     }
   }
 
-  __close(scopeManager: ScopeManager) {
+  public __close(scopeManager: ScopeManager) {
     let closeRef;
 
     if (this.__shouldStaticallyClose(scopeManager)) {
       closeRef = this.__staticCloseRef;
-    } else if (this.type !== 'global') {
+    } else if (this.type !== "global") {
       closeRef = this.__dynamicCloseRef;
     } else {
       closeRef = this.__globalCloseRef;
@@ -264,12 +277,15 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
 
   // To override by function scopes.
   // References in default parameters isn't resolved to variables which are in their function body.
-  __isValidResolution(ref: Reference, variable: Variable) {
+  public __isValidResolution(
+    ref: Reference,
+    variable: Variable,
+  ) {
     // eslint-disable-line class-methods-use-this, no-unused-vars
     return true;
   }
 
-  __resolve(ref: Reference) {
+  public __resolve(ref: Reference) {
     const name = ref.identifier.name;
 
     if (!this.set.has(name)) {
@@ -282,7 +298,8 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     }
     variable.references.push(ref);
     variable.stack =
-      variable.stack && ref.from.variableScope === this.variableScope;
+      variable.stack &&
+      ref.from.variableScope === this.variableScope;
     if (ref.tainted) {
       variable.tainted = true;
       this.taints.set(variable.name, true);
@@ -292,14 +309,17 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     return true;
   }
 
-  __delegateToUpperScope(ref: Reference) {
+  public __delegateToUpperScope(ref: Reference) {
     if (this.upper) {
       this.upper.__left!.push(ref);
     }
     this.through.push(ref);
   }
 
-  __addDeclaredVariablesOfNode(variable: Variable, node: ESTree.Node | undefined) {
+  public __addDeclaredVariablesOfNode(
+    variable: Variable,
+    node: ESTree.Node | undefined,
+  ) {
     if (node === null || node === undefined) {
       return;
     }
@@ -320,7 +340,7 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     set: Map<string, Variable>,
     variables: Variable[],
     node: any,
-    def?: Definition
+    def?: Definition,
   ) {
     let variable: Variable;
 
@@ -345,14 +365,23 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     return variable;
   }
 
-  __define(node: ESTree.Node, def: Definition): Variable | null {
+  public __define(
+    node: ESTree.Node,
+    def: Definition,
+  ): Variable | null {
     if (node && node.type === Syntax.Identifier) {
-      return this.__defineGeneric(node.name, this.set, this.variables, node, def);
+      return this.__defineGeneric(
+        node.name,
+        this.set,
+        this.variables,
+        node,
+        def,
+      );
     }
     return null;
   }
 
-  __referencing(
+  public __referencing(
     node: ESTree.Node,
     assign?: number,
     writeExpr?: ESTree.Expression,
@@ -367,14 +396,16 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     }
 
     // Specially handle like `this`.
-    if (node.name === 'super') {
+    if (node.name === "super") {
       return;
     }
 
     const ref = new Reference(
       node,
       this,
-      isExportingSpecifier ? Reference.EXPORT : (assign || Reference.READ),
+      isExportingSpecifier
+        ? Reference.EXPORT
+        : assign || Reference.READ,
       writeExpr,
       maybeImplicitGlobal,
       !!partial,
@@ -386,7 +417,7 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     return ref;
   }
 
-  __detectEval() {
+  public __detectEval() {
     let current: Scope = this;
 
     this.directCallToEvalScope = true;
@@ -396,19 +427,22 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     } while (current);
   }
 
-  __detectThis() {
+  public __detectThis() {
     this.thisFound = true;
   }
 
-  __isClosed() {
+  public __isClosed() {
     return this.__left === null;
   }
 
-  resolve(ident: ESTree.Identifier): Reference | null {
+  public resolve(ident: ESTree.Identifier): Reference | null {
     let ref, i, iz;
 
-    assert(this.__isClosed(), 'Scope should be closed.');
-    assert(ident.type === Syntax.Identifier, 'Target should be identifier.');
+    assert(this.__isClosed(), "Scope should be closed.");
+    assert(
+      ident.type === Syntax.Identifier,
+      "Target should be identifier.",
+    );
     for (i = 0, iz = this.references.length; i < iz; ++i) {
       ref = this.references[i];
       if (ref.identifier === ident) {
@@ -418,36 +452,19 @@ export class Scope<BlockType extends ESTree.Node = ESTree.Node> {
     return null;
   }
 
-  /**
-   * returns this scope is static
-   * @method Scope#isStatic
-   * @returns {boolean} static
-   */
-  isStatic() {
+  public isStatic() {
     return !this.dynamic;
   }
 
-  /**
-   * returns this scope has materialized arguments
-   * @method Scope#isArgumentsMaterialized
-   * @returns {boolean} arguemnts materialized
-   */
-  isArgumentsMaterialized() {
-    // eslint-disable-line class-methods-use-this
+  public isArgumentsMaterialized() {
     return true;
   }
 
-  /**
-   * returns this scope has materialized `this` reference
-   * @method Scope#isThisMaterialized
-   * @returns {boolean} this materialized
-   */
-  isThisMaterialized() {
-    // eslint-disable-line class-methods-use-this
+  public isThisMaterialized() {
     return true;
   }
 
-  isUsedName(name: string) {
+  public isUsedName(name: string) {
     if (this.set.has(name)) {
       return true;
     }

@@ -1,6 +1,6 @@
 import { Scope } from "./scope";
 import { Variable } from "./variable";
-import * as ESTree from 'estree';
+import * as ESTree from "estree";
 
 const __READ = 0x1;
 const __WRITE = 0x2;
@@ -8,15 +8,14 @@ const __RW = __READ | __WRITE;
 const __EXPORT = 0x4;
 
 export interface ImplicitGlobal {
-  pattern: ESTree.Identifier,
-  node: ESTree.Node,
+  pattern: ESTree.Identifier;
+  node: ESTree.Node;
 }
 
 /**
  * A Reference represents a single occurrence of an identifier in code.
  */
 export class Reference {
-
   public static READ = __READ;
   public static WRITE = __WRITE;
   public static RW = __RW;
@@ -29,7 +28,7 @@ export class Reference {
   public readonly partial?: boolean;
   public readonly init?: boolean;
 
-  constructor(
+  public constructor(
     public readonly identifier: ESTree.Identifier,
     public readonly from: Scope,
     public readonly flag: number,
@@ -61,7 +60,11 @@ export class Reference {
    * Whether the reference is static.
    */
   get isStatic() {
-    return !this.tainted && this.resolved && this.resolved.scope.isStatic();
+    return (
+      !this.tainted &&
+      this.resolved &&
+      this.resolved.scope.isStatic()
+    );
   }
 
   /**

@@ -1,20 +1,28 @@
-import { Syntax } from 'estraverse';
-import { Scope } from './scope';
-import { ScopeManager } from '../scopeManager'
+import { Syntax } from "estraverse";
+import { Scope } from "./scope";
+import { ScopeManager } from "../scopeManager";
 
-import * as assert from 'assert';
-import { Variable } from '../variable';
-import { Reference } from '../reference';
-import * as ESTree from 'estree';
+import * as assert from "assert";
+import { Variable } from "../variable";
+import { Reference } from "../reference";
+import * as ESTree from "estree";
 
-export class FunctionScope extends Scope<ESTree.Function | ESTree.Program> {
-  constructor(
+export class FunctionScope extends Scope<
+  ESTree.Function | ESTree.Program
+> {
+  public constructor(
     scopeManager: ScopeManager,
     upperScope: Scope,
     block: ESTree.Function | ESTree.Program,
     isMethodDefinition: boolean,
   ) {
-    super(scopeManager, 'function', upperScope, block, isMethodDefinition);
+    super(
+      scopeManager,
+      "function",
+      upperScope,
+      block,
+      isMethodDefinition,
+    );
 
     // section 9.2.13, FunctionDeclarationInstantiation.
     // NOTE Arrow functions never have an arguments objects.
@@ -23,7 +31,7 @@ export class FunctionScope extends Scope<ESTree.Function | ESTree.Program> {
     }
   }
 
-  isArgumentsMaterialized() {
+  public isArgumentsMaterialized() {
     // TODO(Constellation)
     // We can more aggressive on this condition like this.
     //
@@ -40,22 +48,32 @@ export class FunctionScope extends Scope<ESTree.Function | ESTree.Program> {
       return true;
     }
 
-    const variable = this.set.get('arguments');
+    const variable = this.set.get("arguments");
 
-    assert(typeof variable !== 'undefined', 'Always have arguments variable.');
-    return variable!.tainted || variable!.references.length !== 0;
+    assert(
+      typeof variable !== "undefined",
+      "Always have arguments variable.",
+    );
+    return (
+      variable!.tainted || variable!.references.length !== 0
+    );
   }
 
-  isThisMaterialized() {
+  public isThisMaterialized() {
     if (!this.isStatic()) {
       return true;
     }
     return this.thisFound;
   }
 
-  __defineArguments() {
-    this.__defineGeneric('arguments', this.set, this.variables, null);
-    this.taints.set('arguments', true);
+  public __defineArguments() {
+    this.__defineGeneric(
+      "arguments",
+      this.set,
+      this.variables,
+      null,
+    );
+    this.taints.set("arguments", true);
   }
 
   // References in default parameters isn't resolved to variables which are in their function body.
@@ -64,9 +82,12 @@ export class FunctionScope extends Scope<ESTree.Function | ESTree.Program> {
   //         const x = 2
   //         console.log(a)
   //     }
-  __isValidResolution(ref: Reference, variable: Variable): boolean {
+  public __isValidResolution(
+    ref: Reference,
+    variable: Variable,
+  ): boolean {
     // If `options.nodejsScope` is true, `this.block` becomes a Program node.
-    if (this.block.type === 'Program') {
+    if (this.block.type === "Program") {
       return true;
     }
 

@@ -8,11 +8,13 @@
   "scripts": {
     "build": "tsc",
     "test": "mocha ./tests",
-    "debug": "mocha --inspect-brk ./tests"
+    "debug": "mocha --inspect-brk ./tests",
+    "tslint": "tslint -c tslint.json 'src/**/*.ts'"
   },
   "dependencies": {
     "estraverse": "^4.2.0",
     "ramda": "^0.25.0",
+    "tslint": "^5.10.0",
     "webpack": "^4.1.0",
     "webpack-cli": "^2.0.10"
   },

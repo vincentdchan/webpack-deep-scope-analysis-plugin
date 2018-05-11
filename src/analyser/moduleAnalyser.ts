@@ -1,22 +1,29 @@
-import { ScopeManager } from '../scopeManager';
+import { ScopeManager } from "../scopeManager";
 
-import * as assert from 'assert';
-import { Referencer } from '../referencer';
-import * as ESTree from 'estree';
-import { Scope, ModuleScope  } from '../scope';
-import { Reference } from '../reference';
-import * as R from 'ramda';
-import { ImportIdentifierInfo, ImportManager } from '../importManager';
-import { ModuleChildScopeInfo } from './moduleChildScopeInfo';
-import { Variable } from '../variable';
-import { Definition } from '../definition';
-import { Declaration, DeclarationType } from './Declaration';
+import * as assert from "assert";
+import { Referencer } from "../referencer";
+import * as ESTree from "estree";
+import { Scope, ModuleScope } from "../scope";
+import { Reference } from "../reference";
+import * as R from "ramda";
+import {
+  ImportIdentifierInfo,
+  ImportManager,
+} from "../importManager";
+import { ModuleChildScopeInfo } from "./moduleChildScopeInfo";
+import { Variable } from "../variable";
+import { Definition } from "../definition";
+import { Declaration, DeclarationType } from "./Declaration";
 
 export interface Dictionary<T> {
-  [index: string]: T,
+  [index: string]: T;
 }
 
 export class ModuleAnalyser {
+  public readonly childFunctionScopeInfo: Map<
+    string,
+    ModuleChildScopeInfo
+  > = new Map();
 
   public constructor(
     public readonly name: string,
@@ -24,27 +31,28 @@ export class ModuleAnalyser {
     public scopeManager: ScopeManager | null = null,
   ) {}
 
-  public readonly childFunctionScopeInfo: Map<string, ModuleChildScopeInfo> = new Map();
-
   /**
    * Set the default options
    * @returns {Object} options
    */
-  defaultOptions() {
+  public defaultOptions() {
     return {
       optimistic: false,
       directive: false,
       nodejsScope: false,
       impliedStrict: false,
-      sourceType: 'module', // one of ['script', 'module']
+      sourceType: "module", // one of ['script', 'module']
       ecmaVersion: 6,
       childVisitorKeys: null,
-      fallback: 'iteration',
+      fallback: "iteration",
     };
   }
 
-  analyze(tree: ESTree.Node, providedOptions?: any) {
-    const options = this.updateDeeply(this.defaultOptions(), providedOptions);
+  public analyze(tree: ESTree.Node, providedOptions?: any) {
+    const options = this.updateDeeply(
+      this.defaultOptions(),
+      providedOptions,
+    );
     const scopeManager = new ScopeManager(options);
     const referencer = new Referencer(options, scopeManager);
 
@@ -52,7 +60,7 @@ export class ModuleAnalyser {
 
     assert(
       scopeManager.__currentScope === null,
-      'currentScope should be null.',
+      "currentScope should be null.",
     );
     this.scopeManager = scopeManager;
 
@@ -68,7 +76,7 @@ export class ModuleAnalyser {
     for (let i = 0; i < moduleScope.variables.length; i++) {
       const variable = moduleScope.variables[i];
       const def = variable.defs[0];
-      if (def.node.type === 'FunctionDeclaration') {
+      if (def.node.type === "FunctionDeclaration") {
         declarations.push(
           new Declaration(
             DeclarationType.Function,
@@ -77,7 +85,7 @@ export class ModuleAnalyser {
             this.scopeManager!.__nodeToScope.get(def.node)!,
           ),
         );
-      } else if (def.node.type === 'ClassDeclaration') {
+      } else if (def.node.type === "ClassDeclaration") {
         declarations.push(
           new Declaration(
             DeclarationType.Class,
@@ -87,12 +95,12 @@ export class ModuleAnalyser {
           ),
         );
       } else if (
-        def.kind === 'const' &&
-        def.node.type === 'VariableDeclarator' && 
+        def.kind === "const" &&
+        def.node.type === "VariableDeclarator" &&
         def.node.init
       ) {
         const { init } = def.node;
-        if (init.type === 'ClassExpression') {
+        if (init.type === "ClassExpression") {
           declarations.push(
             new Declaration(
               DeclarationType.Class,
@@ -102,8 +110,8 @@ export class ModuleAnalyser {
             ),
           );
         } else if (
-          init.type === 'FunctionExpression' ||
-          init.type === 'ArrowFunctionExpression'
+          init.type === "FunctionExpression" ||
+          init.type === "ArrowFunctionExpression"
         ) {
           declarations.push(
             new Declaration(
@@ -117,34 +125,39 @@ export class ModuleAnalyser {
       }
     }
 
-    const isFunction = (node: ESTree.Node) => R.contains(node.type, [
-      'FunctionDeclaration',
-      'ArrowFunctionExpression',
-    ]);
-    if (
-      exportManager.exportDefaultDeclaration
-    ) {
+    const isFunction = (node: ESTree.Node) =>
+      R.contains(node.type, [
+        "FunctionDeclaration",
+        "ArrowFunctionExpression",
+      ]);
+    if (exportManager.exportDefaultDeclaration) {
       if (isFunction(exportManager.exportDefaultDeclaration)) {
-        const declaration = exportManager.exportDefaultDeclaration;
+        const declaration =
+          exportManager.exportDefaultDeclaration;
         declarations.push(
           new Declaration(
             DeclarationType.Function,
-            'default',
+            "default",
             declaration,
             this.scopeManager!.__nodeToScope.get(declaration)!,
-          )
+          ),
         );
-      } else if (exportManager.exportDefaultDeclaration.type === 'Identifier') {
+      } else if (
+        exportManager.exportDefaultDeclaration.type ===
+        "Identifier"
+      ) {
         const id = exportManager.exportDefaultDeclaration as ESTree.Identifier;
         const idName = id.name;
         const variable = moduleScope.set.get(idName)!;
         declarations.push(
           new Declaration(
             DeclarationType.Function,
-            'default',
+            "default",
             id,
-            this.scopeManager!.__nodeToScope.get(variable.defs[0].node)!,
-          )
+            this.scopeManager!.__nodeToScope.get(
+              variable.defs[0].node,
+            )!,
+          ),
         );
       }
     }
@@ -164,25 +177,34 @@ export class ModuleAnalyser {
     const independentScopes = R.filter<Scope>(
       item => !visitedSet.has(item),
       moduleScope.childScopes,
-    )
+    );
     this.handleIndependentScopes(independentScopes);
 
     // find references that is not in export specifiers
     this.handleNotExportReferences(
-      moduleScope.references.filter(ref => !ref.isExport)
+      moduleScope.references.filter(ref => !ref.isExport),
     );
   }
 
   public generateExportInfo(usedExport: string[]) {
-    const moduleScopeIds = this.findExportLocalNames(usedExport);
-    const importManager = this.moduleScope.importManager;
-    const result = importManager.ids.filter(item => item.mustBeImported).map(
-      item => ({ sourceName: item.sourceName, moduleName: item.moduleName})
+    const moduleScopeIds = this.findExportLocalNames(
+      usedExport,
     );
+    const importManager = this.moduleScope.importManager;
+    const result = importManager.ids
+      .filter(item => item.mustBeImported)
+      .map(item => ({
+        sourceName: item.sourceName,
+        moduleName: item.moduleName,
+      }));
 
-    const visitedScopeInfoSet = new WeakSet<ModuleChildScopeInfo>();
+    const visitedScopeInfoSet = new WeakSet<
+      ModuleChildScopeInfo
+    >();
 
-    const visitScopeInfo = (scopeInfo: ModuleChildScopeInfo) => {
+    const visitScopeInfo = (
+      scopeInfo: ModuleChildScopeInfo,
+    ) => {
       if (visitedScopeInfoSet.has(scopeInfo)) return;
       visitedScopeInfoSet.add(scopeInfo);
 
@@ -194,49 +216,77 @@ export class ModuleAnalyser {
           });
         }
 
-        if (this.childFunctionScopeInfo.has(ref.identifier.name)) {
-          visitScopeInfo(this.childFunctionScopeInfo.get(ref.identifier.name)!);
+        if (
+          this.childFunctionScopeInfo.has(ref.identifier.name)
+        ) {
+          visitScopeInfo(
+            this.childFunctionScopeInfo.get(
+              ref.identifier.name,
+            )!,
+          );
         }
-
       });
-
-    }
+    };
 
     // find all related scopes
     [...this.childFunctionScopeInfo.entries()]
-      .filter(([funName, scopeInfo]) => R.contains(funName, moduleScopeIds))
-      .forEach(([funName, scopeInfo]) => visitScopeInfo(scopeInfo));
+      .filter(([funName, scopeInfo]) =>
+        R.contains(funName, moduleScopeIds),
+      )
+      .forEach(([funName, scopeInfo]) =>
+        visitScopeInfo(scopeInfo),
+      );
 
-    return R.toPairs<string[]>(result.reduce(  // to pairs
-        (acc: Dictionary<string[]>, item) => {  // group by moduleName
+    return R.toPairs<string[]>(
+      result.reduce(
+        // to pairs
+        (acc: Dictionary<string[]>, item) => {
+          // group by moduleName
           const { moduleName } = item;
-          (acc[moduleName] || (acc[moduleName] = [])).push(item.sourceName);  // check the map and push
+          (acc[moduleName] || (acc[moduleName] = [])).push(
+            item.sourceName,
+          ); // check the map and push
           return acc;
         },
         {},
-      ))
-      .map(([moduleName, sourceNames]): [string, string[]] => [ // uniq the sourceNames
+      ),
+    )
+      .map(([moduleName, sourceNames]): [string, string[]] => [
+        // uniq the sourceNames
         moduleName,
         R.uniq(sourceNames),
       ])
-      .reduce(  // from tuples to map
-        (acc: Dictionary<string[]>, [moduleName, sourceNames]) => {
+      .reduce(
+        // from tuples to map
+        (
+          acc: Dictionary<string[]>,
+          [moduleName, sourceNames],
+        ) => {
           acc[moduleName] = sourceNames;
           return acc;
         },
-        {}
+        {},
       );
   }
 
   private findExportLocalNames(usedExport: string[]) {
-    return usedExport.map(id =>
-      this.moduleScope.exportManager.localIdMap.get(id)!
-    )
-    .filter(info => info.localName !== null || info.exportName === 'default')
-    .map(info => (info.localName || info.exportName))
+    return usedExport
+      .map(
+        id =>
+          this.moduleScope.exportManager.localIdMap.get(id)!,
+      )
+      .filter(
+        info =>
+          info.localName !== null ||
+          info.exportName === "default",
+      )
+      .map(info => info.localName || info.exportName);
   }
 
-  private handleDeclarations = (decls: Declaration[], visitedSet: WeakSet<Scope>) =>
+  private handleDeclarations = (
+    decls: Declaration[],
+    visitedSet: WeakSet<Scope>,
+  ) =>
     decls.forEach(decl => {
       decl.scopes.forEach(scope => {
         visitedSet.add(scope);
@@ -245,34 +295,44 @@ export class ModuleAnalyser {
           this.moduleScope.importManager,
         );
         this.childFunctionScopeInfo.set(decl.name, info);
-      })
-    });
+      });
+    })
 
   private handleIndependentScopes = (scopes: Scope[]) =>
     scopes.forEach(scope => {
-      const info = new ModuleChildScopeInfo(scope, this.moduleScope.importManager);
+      const info = new ModuleChildScopeInfo(
+        scope,
+        this.moduleScope.importManager,
+      );
       info.refsToModule.forEach(([ref, info]) => {
         if (info !== null) {
           info.mustBeImported = true;
         }
-      })
-    });
+      });
+    })
 
   private handleNotExportReferences = (refs: Reference[]) => {
     const ids = refs
-      .filter(ref => ref.resolved && ref.resolved.scope.type === 'module')
-      .map(ref =>
-        this.moduleScope.importManager.idMap.get(ref.resolved!.name),
+      .filter(
+        ref =>
+          ref.resolved && ref.resolved.scope.type === "module",
       )
-      .filter(idInfo => typeof idInfo !== 'undefined') as ImportIdentifierInfo[];
+      .map(ref =>
+        this.moduleScope.importManager.idMap.get(
+          ref.resolved!.name,
+        ),
+      )
+      .filter(
+        idInfo => typeof idInfo !== "undefined",
+      ) as ImportIdentifierInfo[];
 
-    ids.forEach(idInfo => idInfo.mustBeImported = true);
+    ids.forEach(idInfo => (idInfo.mustBeImported = true));
   }
 
   private findChildScopeOfModule(ref: Reference): Scope | null {
     let scope = ref.from;
     while (scope.upper !== null) {
-      if (scope.upper.type === 'module') {
+      if (scope.upper.type === "module") {
         return scope;
       }
       scope = scope.upper;
@@ -284,10 +344,9 @@ export class ModuleAnalyser {
    * Preform deep update on option object
    */
   private updateDeeply(target: any, override: any) {
-
     function isHashObject(value: any): boolean {
       return (
-        typeof value === 'object' &&
+        typeof value === "object" &&
         value instanceof Object &&
         !(value instanceof Array) &&
         !(value instanceof RegExp)
@@ -313,7 +372,6 @@ export class ModuleAnalyser {
   }
 
   get moduleScope() {
-    return this.scopeManager!.scopes[1] as ModuleScope; // default 1 is module Scope; 
+    return this.scopeManager!.scopes[1] as ModuleScope; // default 1 is module Scope;
   }
-
 }

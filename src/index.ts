@@ -12,35 +12,42 @@ const moduleManager = new ModuleManager();
 const pluginName = "WebpackDeepScopeAnalysisPlugin";
 
 class WebpackDeepScopeAnalysisPlugin {
+  public apply(compiler: any) {
+    compiler.hooks.compilation.tap(
+      pluginName,
+      (compilation: any, data: any) => {
+        let moduleAnalyser: ModuleAnalyser;
 
-  apply(compiler: any) {
+        compilation.hooks.normalModuleLoader.tap(
+          pluginName,
+          (loaderContext: any, module: any) => {
+            moduleAnalyser = new ModuleAnalyser(
+              module.resource,
+              module,
+            );
 
-    compiler.hooks.compilation.tap(pluginName, (compilation: any, data: any) => {
-      let moduleAnalyser: ModuleAnalyser;
-
-      compilation.hooks.normalModuleLoader.tap(pluginName, function(
-        loaderContext: any,
-        module: any
-      ) {
-        moduleAnalyser = new ModuleAnalyser(module.resource, module);
-
-        module.parser.hooks.program.tap(pluginName, (ast: any) => {
-          if (!moduleManager.map.has(moduleAnalyser.name)) {
-            moduleAnalyser.analyze(ast);
-            debugger;
-            moduleManager.map.set(moduleAnalyser.name, moduleAnalyser);
-          }
-        });
-        
-      });
-
-    });
-    
+            module.parser.hooks.program.tap(
+              pluginName,
+              (ast: any) => {
+                if (
+                  !moduleManager.map.has(moduleAnalyser.name)
+                ) {
+                  moduleAnalyser.analyze(ast);
+                  moduleManager.map.set(
+                    moduleAnalyser.name,
+                    moduleAnalyser,
+                  );
+                }
+              },
+            );
+          },
+        );
+      },
+    );
   }
-
 }
 
 export {
   WebpackDeepScopeAnalysisPlugin as default,
   ModuleAnalyser,
-}
+};

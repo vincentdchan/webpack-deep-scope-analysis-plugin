@@ -1,5 +1,5 @@
-import * as ESTree from 'estree';
-import { ImportIdentifierInfo } from './importManager';
+import * as ESTree from "estree";
+import { ImportIdentifierInfo } from "./importManager";
 
 export class LocalExportIdentifier {
   public dependentImportNames?: ImportIdentifierInfo[];
@@ -9,12 +9,11 @@ export class LocalExportIdentifier {
     public readonly localName: string | null,
     public readonly node: ESTree.Node,
   ) {}
-
 }
 
 export enum ExternalType {
-  Identifier = 'Identifier',
-  All = 'All',
+  Identifier = "Identifier",
+  All = "All",
 }
 
 export class ExternalInfo {
@@ -22,20 +21,25 @@ export class ExternalInfo {
     public readonly moduleName: string,
     public readonly moduleType: ExternalType,
     public readonly names?: {
-      exportName: string,
-      sourceName: string,
+      exportName: string;
+      sourceName: string;
     },
   ) {}
 }
 
 export class ExportManager {
-  public readonly localIdMap: Map<string, LocalExportIdentifier> = new Map();
+  public readonly localIdMap: Map<
+    string,
+    LocalExportIdentifier
+  > = new Map();
   public readonly externalInfos: ExternalInfo[] = [];
   public exportDefaultDeclaration: ESTree.Node | null = null;
 
-  public addLocalExportIdentifier(exportId: LocalExportIdentifier) {
+  public addLocalExportIdentifier(
+    exportId: LocalExportIdentifier,
+  ) {
     this.localIdMap.set(exportId.exportName, exportId);
-    if (exportId.exportName === 'default') {
+    if (exportId.exportName === "default") {
       this.exportDefaultDeclaration = exportId.node as ESTree.ExportDefaultDeclaration;
     }
   }
@@ -43,5 +47,4 @@ export class ExportManager {
   get localIds() {
     return [...this.localIdMap.values()];
   }
-
 }

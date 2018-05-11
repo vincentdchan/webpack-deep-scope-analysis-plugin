@@ -11,67 +11,72 @@ import {
   TDZScope,
   FunctionExpressionNameScope,
   BlockScope,
-} from './scope';
-import { Variable } from './variable';
-import * as assert from 'assert';
-import * as ESTree from 'estree';
+} from "./scope";
+import { Variable } from "./variable";
+import * as assert from "assert";
+import * as ESTree from "estree";
 
 export class ScopeManager {
-
-  public constructor(
-    public readonly __options: any
-  ) { }
+  public constructor(public readonly __options: any) {}
 
   public globalScope: Scope | null = null;
   public __currentScope: Scope | null = null;
   public readonly scopes: Scope[] = [];
-  public readonly __nodeToScope: WeakMap<any, Scope[]> = new WeakMap();
-  public readonly __declaredVariables: WeakMap<any, Variable[]> = new WeakMap();
+  public readonly __nodeToScope: WeakMap<
+    any,
+    Scope[]
+  > = new WeakMap();
+  public readonly __declaredVariables: WeakMap<
+    any,
+    Variable[]
+  > = new WeakMap();
 
-
-  __useDirective() {
+  public __useDirective() {
     return this.__options.directive;
   }
 
-  __isOptimistic() {
+  public __isOptimistic() {
     return this.__options.optimistic;
   }
 
-  __ignoreEval() {
+  public __ignoreEval() {
     return this.__options.ignoreEval;
   }
 
-  __isNodejsScope() {
+  public __isNodejsScope() {
     return this.__options.nodejsScope;
   }
 
-  isModule() {
-    return this.__options.sourceType === 'module';
+  public isModule() {
+    return this.__options.sourceType === "module";
   }
 
-  isImpliedStrict() {
+  public isImpliedStrict() {
     return this.__options.impliedStrict;
   }
 
-  isStrictModeSupported() {
+  public isStrictModeSupported() {
     return this.__options.ecmaVersion >= 5;
   }
 
   // Returns appropriate scope for this node.
-  __get(node: ESTree.Node) {
+  public __get(node: ESTree.Node) {
     return this.__nodeToScope.get(node);
   }
 
-  getDeclaredVariables(node: ESTree.Node[]): Variable[] {
+  public getDeclaredVariables(node: ESTree.Node[]): Variable[] {
     return this.__declaredVariables.get(node) || [];
   }
 
-  acquire(node: ESTree.Node, inner: boolean): Scope | null {
+  public acquire(node: ESTree.Node, inner: boolean): Scope | null {
     function predicate(testScope: Scope): boolean {
-      if (testScope.type === 'function' && testScope.functionExpressionScope) {
+      if (
+        testScope.type === "function" &&
+        testScope.functionExpressionScope
+      ) {
         return false;
       }
-      if (testScope.type === 'TDZ') {
+      if (testScope.type === "TDZ") {
         return false;
       }
       return true;
@@ -110,11 +115,11 @@ export class ScopeManager {
     return null;
   }
 
-  acquireAll(node: ESTree.Node): Scope[] | undefined {
+  public acquireAll(node: ESTree.Node): Scope[] | undefined {
     return this.__get(node);
   }
 
-  release(node: ESTree.Node, inner: boolean): Scope | null {
+  public release(node: ESTree.Node, inner: boolean): Scope | null {
     const scopes = this.__get(node);
 
     if (scopes && scopes.length) {
@@ -128,11 +133,11 @@ export class ScopeManager {
     return null;
   }
 
-  attach() {} // eslint-disable-line class-methods-use-this
+  public attach() {} // eslint-disable-line class-methods-use-this
 
-  detach() {} // eslint-disable-line class-methods-use-this
+  public detach() {} // eslint-disable-line class-methods-use-this
 
-  __nestScope(scope: Scope) {
+  public __nestScope(scope: Scope) {
     if (scope instanceof GlobalScope) {
       assert(this.__currentScope === null);
       this.globalScope = scope;
@@ -141,58 +146,85 @@ export class ScopeManager {
     return scope;
   }
 
-  __nestGlobalScope(node: ESTree.Node) {
+  public __nestGlobalScope(node: ESTree.Node) {
     return this.__nestScope(new GlobalScope(this, node));
   }
 
-  __nestBlockScope(node: ESTree.Node) {
-    return this.__nestScope(new BlockScope(this, this.__currentScope!, node));
+  public __nestBlockScope(node: ESTree.Node) {
+    return this.__nestScope(
+      new BlockScope(this, this.__currentScope!, node),
+    );
   }
 
-  __nestFunctionScope(
+  public __nestFunctionScope(
     node: ESTree.Function | ESTree.Program,
-    isMethodDefinition: boolean
+    isMethodDefinition: boolean,
   ) {
     return this.__nestScope(
-      new FunctionScope(this, this.__currentScope!, node, isMethodDefinition),
+      new FunctionScope(
+        this,
+        this.__currentScope!,
+        node,
+        isMethodDefinition,
+      ),
     );
   }
 
-  __nestForScope(node: ESTree.Node) {
-    return this.__nestScope(new ForScope(this, this.__currentScope!, node));
-  }
-
-  __nestCatchScope(node: ESTree.Node) {
-    return this.__nestScope(new CatchScope(this, this.__currentScope!, node));
-  }
-
-  __nestWithScope(node: ESTree.Node) {
-    return this.__nestScope(new WithScope(this, this.__currentScope!, node));
-  }
-
-  __nestClassScope(node: ESTree.Node) {
-    return this.__nestScope(new ClassScope(this, this.__currentScope!, node));
-  }
-
-  __nestSwitchScope(node: ESTree.SwitchStatement) {
-    return this.__nestScope(new SwitchScope(this, this.__currentScope!, node));
-  }
-
-  __nestModuleScope(node: ESTree.Node) {
-    return this.__nestScope(new ModuleScope(this, this.__currentScope!, node));
-  }
-
-  __nestTDZScope(node: ESTree.Node) {
-    return this.__nestScope(new TDZScope(this, this.__currentScope!, node));
-  }
-
-  __nestFunctionExpressionNameScope(node: ESTree.FunctionExpression) {
+  public __nestForScope(node: ESTree.Node) {
     return this.__nestScope(
-      new FunctionExpressionNameScope(this, this.__currentScope!, node),
+      new ForScope(this, this.__currentScope!, node),
     );
   }
 
-  __isES6() {
+  public __nestCatchScope(node: ESTree.Node) {
+    return this.__nestScope(
+      new CatchScope(this, this.__currentScope!, node),
+    );
+  }
+
+  public __nestWithScope(node: ESTree.Node) {
+    return this.__nestScope(
+      new WithScope(this, this.__currentScope!, node),
+    );
+  }
+
+  public __nestClassScope(node: ESTree.Node) {
+    return this.__nestScope(
+      new ClassScope(this, this.__currentScope!, node),
+    );
+  }
+
+  public __nestSwitchScope(node: ESTree.SwitchStatement) {
+    return this.__nestScope(
+      new SwitchScope(this, this.__currentScope!, node),
+    );
+  }
+
+  public __nestModuleScope(node: ESTree.Node) {
+    return this.__nestScope(
+      new ModuleScope(this, this.__currentScope!, node),
+    );
+  }
+
+  public __nestTDZScope(node: ESTree.Node) {
+    return this.__nestScope(
+      new TDZScope(this, this.__currentScope!, node),
+    );
+  }
+
+  public __nestFunctionExpressionNameScope(
+    node: ESTree.FunctionExpression,
+  ) {
+    return this.__nestScope(
+      new FunctionExpressionNameScope(
+        this,
+        this.__currentScope!,
+        node,
+      ),
+    );
+  }
+
+  public __isES6() {
     return this.__options.ecmaVersion >= 6;
   }
 }
