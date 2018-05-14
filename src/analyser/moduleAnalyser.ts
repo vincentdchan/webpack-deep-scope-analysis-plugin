@@ -24,6 +24,7 @@ export class ModuleAnalyser {
     string,
     ModuleChildScopeInfo
   > = new Map();
+  public readonly internalUsedScopeIds: string[] = [];
 
   public constructor(
     public readonly name: string,
@@ -187,9 +188,7 @@ export class ModuleAnalyser {
   }
 
   public generateExportInfo(usedExport: string[]) {
-    const moduleScopeIds = this.findExportLocalNames(
-      usedExport,
-    );
+    const moduleScopeIds = this.internalUsedScopeIds.concat(this.findExportLocalNames(usedExport));
     const importManager = this.moduleScope.importManager;
     const result = importManager.ids
       .filter(item => item.mustBeImported)
@@ -327,14 +326,8 @@ export class ModuleAnalyser {
       );
       if (importId) {
         importId.mustBeImported = true;
-      } else if (moduleChildrenInfo && !ref.init && !ref.isExport) {
-        moduleChildrenInfo.refsToModule.forEach(
-          ([ref, info]) => {
-            if (info !== null) {
-              info.mustBeImported = true;
-            }
-          },
-        );
+      } else if (moduleChildrenInfo && !ref.init) {
+        this.internalUsedScopeIds.push(ref.identifier.name);
       }
     });
   }
