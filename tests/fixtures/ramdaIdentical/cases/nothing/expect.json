@@ -1,7 +1,4 @@
 {
-  "./internal/_objectIs": [
-    "_objectIs"
-  ],
   "./internal/_curry2": [
     "_curry2"
   ]
