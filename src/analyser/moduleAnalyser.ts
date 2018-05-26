@@ -287,6 +287,7 @@ export class ModuleAnalyser {
     visitedSet: WeakSet<Scope>,
   ) =>
     decls.forEach(decl => {
+      if (!decl.scopes) return;
       decl.scopes.forEach(scope => {
         visitedSet.add(scope);
         const info = new ModuleChildScopeInfo(
