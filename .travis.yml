@@ -2,6 +2,7 @@ language: node_js
 node_js:
   - "9"
 script:
-  - yarn run tslint
-  - yarn build
-  - yarn test
+  - npm install --global lerna
+  - lerna run tslint
+  - lerna run build
+  - lerna run test

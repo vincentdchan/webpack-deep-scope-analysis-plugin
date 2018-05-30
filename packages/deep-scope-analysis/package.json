@@ -1,0 +1,31 @@
+{
+  "name": "webpack-deep-scope-analysis",
+  "version": "1.1.5",
+  "main": "lib/index.js",
+  "author": "Vincent Chan <cdzos97@gmail.com>",
+  "license": "MIT",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "mocha ./tests",
+    "debug": "mocha --inspect-brk ./tests",
+    "tslint": "tslint -c tslint.json 'src/**/*.ts'"
+  },
+  "dependencies": {
+    "estraverse": "^4.2.0",
+    "ramda": "^0.25.0",
+    "tslint": "^5.10.0",
+    "webpack": "^4.1.0",
+    "webpack-cli": "^2.0.10"
+  },
+  "devDependencies": {
+    "@types/estree": "^0.0.39",
+    "@types/node": "^9.6.0",
+    "@types/ramda": "^0.25.24",
+    "acorn": "^5.5.3",
+    "chai": "^4.1.2",
+    "chai-jest-diff": "^1.0.2",
+    "mocha": "^5.1.1",
+    "typescript": "^2.7.2"
+  }
+}
