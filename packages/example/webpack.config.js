@@ -1,5 +1,5 @@
 const path = require('path');
-const WebpackDeepScopeAnalysisPlugin = require('../../').default;
+const WebpackDeepScopeAnalysisPlugin = require('webpack-deep-scope-plugin').default;
 const webpackMajorVersion = require('webpack/package.json').version.split('.')[0];
 
 module.exports = {
@@ -14,7 +14,7 @@ module.exports = {
   // mode: "production",
   mode: 'development',
   plugins: [
-    // new WebpackDeepScopeAnalysisPlugin(),
+    new WebpackDeepScopeAnalysisPlugin(),
   ],
   optimization: {
 		usedExports: true,

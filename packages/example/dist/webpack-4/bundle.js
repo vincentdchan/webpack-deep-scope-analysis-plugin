@@ -36,17 +36,32 @@
 /******/ 	// define getter function for harmony exports
 /******/ 	__webpack_require__.d = function(exports, name, getter) {
 /******/ 		if(!__webpack_require__.o(exports, name)) {
-/******/ 			Object.defineProperty(exports, name, {
-/******/ 				configurable: false,
-/******/ 				enumerable: true,
-/******/ 				get: getter
-/******/ 			});
+/******/ 			Object.defineProperty(exports, name, { enumerable: true, get: getter });
 /******/ 		}
 /******/ 	};
 /******/
 /******/ 	// define __esModule on exports
 /******/ 	__webpack_require__.r = function(exports) {
+/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		}
 /******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
+/******/
+/******/ 	// create a fake namespace object
+/******/ 	// mode & 1: value is a module id, require it
+/******/ 	// mode & 2: merge all properties of value into the ns
+/******/ 	// mode & 4: return value when already ns object
+/******/ 	// mode & 8|1: behave like require
+/******/ 	__webpack_require__.t = function(value, mode) {
+/******/ 		if(mode & 1) value = __webpack_require__(value);
+/******/ 		if(mode & 8) return value;
+/******/ 		if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
+/******/ 		var ns = Object.create(null);
+/******/ 		__webpack_require__.r(ns);
+/******/ 		Object.defineProperty(ns, 'default', { enumerable: true, value: value });
+/******/ 		if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
+/******/ 		return ns;
 /******/ 	};
 /******/
 /******/ 	// getDefaultExport function for compatibility with non-harmony modules
@@ -76,11 +91,11 @@
   !*** ./another.js ***!
   \********************/
 /*! exports provided: what, the, foo */
-/*! exports used: the, what */
+/*! exports used: the */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return what; });
+/* unused harmony export what */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return the; });
 /* unused harmony export foo */
 /* harmony import */ var _end__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./end */ "./end.js");
@@ -88,7 +103,7 @@
 
 function what() {
   console.log('what');
-  return 'what' + Object(_end__WEBPACK_IMPORTED_MODULE_0__[/* final */ "a"])();
+  return 'what' + Object(_end__WEBPACK_IMPORTED_MODULE_0__[/* final */ false])();
 }
 
 function the() {
@@ -126,7 +141,7 @@ function equal(a, b) {
 }
 
 function deepEqual(a, b) {
-  return true + Object(_another__WEBPACK_IMPORTED_MODULE_0__[/* what */ "b"])();
+  return true + Object(_another__WEBPACK_IMPORTED_MODULE_0__[/* what */ false])();
 }
 
 
@@ -137,11 +152,10 @@ function deepEqual(a, b) {
   !*** ./end.js ***!
   \****************/
 /*! exports provided: final */
-/*! exports used: final */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return final; });
+/* unused harmony export final */
 /* harmony import */ var ramda__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ramda */ "./node_modules/ramda/es/index.js");
 
 
@@ -1474,7 +1488,7 @@ var call = /*#__PURE__*/Object(_curry__WEBPACK_IMPORTED_MODULE_0__[/* default */
  *
  *      R.chain(R.append, R.head)([1, 2, 3]); //=> [1, 2, 3, 1]
  */
-var chain = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])( /*#__PURE__*/Object(_internal_dispatchable__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(['fantasy-land/chain', 'chain'], _internal_xchain__WEBPACK_IMPORTED_MODULE_3__[/* default */ "a"], function chain(fn, monad) {
+var chain = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])( /*#__PURE__*/Object(_internal_dispatchable__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(['fantasy-land/chain', 'chain'], _internal_xchain__WEBPACK_IMPORTED_MODULE_3__[/* default */ false], function chain(fn, monad) {
   if (typeof monad === 'function') {
     return function (x) {
       return fn(monad(x))(x);
@@ -1691,7 +1705,7 @@ function compose() {
   if (arguments.length === 0) {
     throw new Error('compose requires at least one argument');
   }
-  return _pipe__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"].apply(this, Object(_reverse__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(arguments));
+  return _pipe__WEBPACK_IMPORTED_MODULE_0__[/* default */ false].apply(this, Object(_reverse__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(arguments));
 }
 
 /***/ }),
@@ -2131,7 +2145,6 @@ var contains = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_1__
   !*** ./node_modules/ramda/es/converge.js ***!
   \*******************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2184,7 +2197,7 @@ var converge = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__
     }, fns));
   });
 });
-/* harmony default export */ __webpack_exports__["a"] = (converge);
+/* unused harmony default export */ var _unused_webpack_default_export = (converge);
 
 /***/ }),
 
@@ -2762,7 +2775,7 @@ var divide = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/
  *      R.drop(4, ['foo', 'bar', 'baz']); //=> []
  *      R.drop(3, 'ramda');               //=> 'da'
  */
-var drop = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])( /*#__PURE__*/Object(_internal_dispatchable__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(['drop'], _internal_xdrop__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"], function drop(n, xs) {
+var drop = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])( /*#__PURE__*/Object(_internal_dispatchable__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(['drop'], _internal_xdrop__WEBPACK_IMPORTED_MODULE_2__[/* default */ false], function drop(n, xs) {
   return Object(_slice__WEBPACK_IMPORTED_MODULE_3__[/* default */ "a"])(Math.max(0, n), Infinity, xs);
 }));
 /* harmony default export */ __webpack_exports__["a"] = (drop);
@@ -3113,7 +3126,7 @@ var either = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/
  *      R.empty({x: 1, y: 2});  //=> {}
  */
 var empty = /*#__PURE__*/Object(_internal_curry1__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(function empty(x) {
-  return x != null && typeof x['fantasy-land/empty'] === 'function' ? x['fantasy-land/empty']() : x != null && x.constructor != null && typeof x.constructor['fantasy-land/empty'] === 'function' ? x.constructor['fantasy-land/empty']() : x != null && typeof x.empty === 'function' ? x.empty() : x != null && x.constructor != null && typeof x.constructor.empty === 'function' ? x.constructor.empty() : Object(_internal_isArray__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(x) ? [] : Object(_internal_isString__WEBPACK_IMPORTED_MODULE_4__[/* default */ "a"])(x) ? '' : Object(_internal_isObject__WEBPACK_IMPORTED_MODULE_3__[/* default */ "a"])(x) ? {} : Object(_internal_isArguments__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(x) ? function () {
+  return x != null && typeof x['fantasy-land/empty'] === 'function' ? x['fantasy-land/empty']() : x != null && x.constructor != null && typeof x.constructor['fantasy-land/empty'] === 'function' ? x.constructor['fantasy-land/empty']() : x != null && typeof x.empty === 'function' ? x.empty() : x != null && x.constructor != null && typeof x.constructor.empty === 'function' ? x.constructor.empty() : Object(_internal_isArray__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(x) ? [] : Object(_internal_isString__WEBPACK_IMPORTED_MODULE_4__[/* default */ "a"])(x) ? '' : Object(_internal_isObject__WEBPACK_IMPORTED_MODULE_3__[/* default */ "a"])(x) ? {} : Object(_internal_isArguments__WEBPACK_IMPORTED_MODULE_1__[/* default */ false])(x) ? function () {
     return arguments;
   }() :
   // else
@@ -3282,7 +3295,7 @@ var eqProps = /*#__PURE__*/Object(_internal_curry3__WEBPACK_IMPORTED_MODULE_0__[
  *      R.equals(a, b); //=> true
  */
 var equals = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(function equals(a, b) {
-  return Object(_internal_equals__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(a, b, [], []);
+  return Object(_internal_equals__WEBPACK_IMPORTED_MODULE_1__[/* default */ false])(a, b, [], []);
 });
 /* harmony default export */ __webpack_exports__["a"] = (equals);
 
@@ -3391,7 +3404,7 @@ var evolve = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/
  *
  *      R.filter(isEven, {a: 1, b: 2, c: 3, d: 4}); //=> {b: 2, d: 4}
  */
-var filter = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])( /*#__PURE__*/Object(_internal_dispatchable__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(['filter'], _internal_xfilter__WEBPACK_IMPORTED_MODULE_5__[/* default */ "a"], function (pred, filterable) {
+var filter = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])( /*#__PURE__*/Object(_internal_dispatchable__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(['filter'], _internal_xfilter__WEBPACK_IMPORTED_MODULE_5__[/* default */ false], function (pred, filterable) {
   return Object(_internal_isObject__WEBPACK_IMPORTED_MODULE_3__[/* default */ "a"])(filterable) ? Object(_internal_reduce__WEBPACK_IMPORTED_MODULE_4__[/* default */ "a"])(function (acc, key) {
     if (pred(filterable[key])) {
       acc[key] = filterable[key];
@@ -5402,7 +5415,7 @@ function _arrayFromIterator(iter) {
 /* harmony import */ var _objectAssign__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./_objectAssign */ "./node_modules/ramda/es/internal/_objectAssign.js");
 
 
-/* harmony default export */ __webpack_exports__["a"] = (typeof Object.assign === 'function' ? Object.assign : _objectAssign__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"]);
+/* harmony default export */ __webpack_exports__["a"] = (typeof Object.assign === 'function' ? Object.assign : _objectAssign__WEBPACK_IMPORTED_MODULE_0__[/* default */ false]);
 
 /***/ }),
 
@@ -5939,11 +5952,10 @@ function dropLastWhile(pred, xs) {
   !*** ./node_modules/ramda/es/internal/_equals.js ***!
   \***************************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return _equals; });
+/* unused harmony export default */
 /* harmony import */ var _arrayFromIterator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./_arrayFromIterator */ "./node_modules/ramda/es/internal/_arrayFromIterator.js");
 /* harmony import */ var _containsWith__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./_containsWith */ "./node_modules/ramda/es/internal/_containsWith.js");
 /* harmony import */ var _functionName__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./_functionName */ "./node_modules/ramda/es/internal/_functionName.js");
@@ -6155,7 +6167,7 @@ var preservingReduced = function (xf) {
     },
     '@@transducer/step': function (result, input) {
       var ret = xf['@@transducer/step'](result, input);
-      return ret['@@transducer/reduced'] ? Object(_forceReduced__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(ret) : ret;
+      return ret['@@transducer/reduced'] ? Object(_forceReduced__WEBPACK_IMPORTED_MODULE_0__[/* default */ false])(ret) : ret;
     }
   };
 };
@@ -6182,11 +6194,10 @@ var _flatCat = function _xcat(xf) {
   !*** ./node_modules/ramda/es/internal/_forceReduced.js ***!
   \*********************************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return _forceReduced; });
+/* unused harmony export default */
 function _forceReduced(x) {
   return {
     '@@transducer/value': x,
@@ -6321,7 +6332,6 @@ function _indexOf(list, a, idx) {
   !*** ./node_modules/ramda/es/internal/_isArguments.js ***!
   \********************************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6337,7 +6347,7 @@ var _isArguments = function () {
   };
 };
 
-/* harmony default export */ __webpack_exports__["a"] = (_isArguments);
+/* unused harmony default export */ var _unused_webpack_default_export = (_isArguments);
 
 /***/ }),
 
@@ -6638,11 +6648,10 @@ function _map(fn, functor) {
   !*** ./node_modules/ramda/es/internal/_objectAssign.js ***!
   \*********************************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return _objectAssign; });
+/* unused harmony export default */
 /* harmony import */ var _has__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./_has */ "./node_modules/ramda/es/internal/_has.js");
 
 
@@ -6731,11 +6740,10 @@ function _pipeP(f, g) {
   !*** ./node_modules/ramda/es/internal/_quote.js ***!
   \**************************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return _quote; });
+/* unused harmony export default */
 function _quote(s) {
   var escaped = s.replace(/\\/g, '\\\\').replace(/[\b]/g, '\\b') // \b matches word boundary; [\b] matches backspace
   .replace(/\f/g, '\\f').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t').replace(/\v/g, '\\v').replace(/\0/g, '\\0');
@@ -6878,7 +6886,7 @@ var _stepCatString = {
 var _stepCatObject = {
   '@@transducer/init': Object,
   '@@transducer/step': function (result, input) {
-    return Object(_assign__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(result, Object(_isArrayLike__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(input) ? Object(_objOf__WEBPACK_IMPORTED_MODULE_4__[/* default */ "a"])(input[0], input[1]) : input);
+    return Object(_assign__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(result, Object(_isArrayLike__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(input) ? Object(_objOf__WEBPACK_IMPORTED_MODULE_4__[/* default */ false])(input[0], input[1]) : input);
   },
   '@@transducer/result': _identity__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"]
 };
@@ -6906,7 +6914,6 @@ function _stepCat(obj) {
   !*** ./node_modules/ramda/es/internal/_toISOString.js ***!
   \********************************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6923,7 +6930,7 @@ var _toISOString = typeof Date.prototype.toISOString === 'function' ? function _
   return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()) + 'T' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()) + '.' + (d.getUTCMilliseconds() / 1000).toFixed(3).slice(2, 5) + 'Z';
 };
 
-/* harmony default export */ __webpack_exports__["a"] = (_toISOString);
+/* unused harmony default export */ var _unused_webpack_default_export = (_toISOString);
 
 /***/ }),
 
@@ -6959,7 +6966,7 @@ function _toString(x, seen) {
   //  mapPairs :: (Object, [String]) -> [String]
   var mapPairs = function (obj, keys) {
     return Object(_map__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(function (k) {
-      return Object(_quote__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(k) + ': ' + recur(obj[k]);
+      return Object(_quote__WEBPACK_IMPORTED_MODULE_2__[/* default */ false])(k) + ': ' + recur(obj[k]);
     }, keys.slice().sort());
   };
 
@@ -6974,13 +6981,13 @@ function _toString(x, seen) {
     case '[object Boolean]':
       return typeof x === 'object' ? 'new Boolean(' + recur(x.valueOf()) + ')' : x.toString();
     case '[object Date]':
-      return 'new Date(' + (isNaN(x.valueOf()) ? recur(NaN) : Object(_quote__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(Object(_toISOString__WEBPACK_IMPORTED_MODULE_3__[/* default */ "a"])(x))) + ')';
+      return 'new Date(' + (isNaN(x.valueOf()) ? recur(NaN) : Object(_quote__WEBPACK_IMPORTED_MODULE_2__[/* default */ false])(Object(_toISOString__WEBPACK_IMPORTED_MODULE_3__[/* default */ false])(x))) + ')';
     case '[object Null]':
       return 'null';
     case '[object Number]':
       return typeof x === 'object' ? 'new Number(' + recur(x.valueOf()) + ')' : 1 / x === -Infinity ? '-0' : x.toString(10);
     case '[object String]':
-      return typeof x === 'object' ? 'new String(' + recur(x.valueOf()) + ')' : Object(_quote__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(x);
+      return typeof x === 'object' ? 'new String(' + recur(x.valueOf()) + ')' : Object(_quote__WEBPACK_IMPORTED_MODULE_2__[/* default */ false])(x);
     case '[object Undefined]':
       return 'undefined';
     default:
@@ -7149,7 +7156,6 @@ var _xaperture = /*#__PURE__*/Object(_curry2__WEBPACK_IMPORTED_MODULE_1__[/* def
   !*** ./node_modules/ramda/es/internal/_xchain.js ***!
   \***************************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -7163,7 +7169,7 @@ var _xaperture = /*#__PURE__*/Object(_curry2__WEBPACK_IMPORTED_MODULE_1__[/* def
 var _xchain = /*#__PURE__*/Object(_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(function _xchain(f, xf) {
   return Object(_map__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(f, Object(_flatCat__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(xf));
 });
-/* harmony default export */ __webpack_exports__["a"] = (_xchain);
+/* unused harmony default export */ var _unused_webpack_default_export = (_xchain);
 
 /***/ }),
 
@@ -7172,7 +7178,6 @@ var _xchain = /*#__PURE__*/Object(_curry2__WEBPACK_IMPORTED_MODULE_0__[/* defaul
   !*** ./node_modules/ramda/es/internal/_xdrop.js ***!
   \**************************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -7202,7 +7207,7 @@ var XDrop = /*#__PURE__*/function () {
 var _xdrop = /*#__PURE__*/Object(_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(function _xdrop(n, xf) {
   return new XDrop(n, xf);
 });
-/* harmony default export */ __webpack_exports__["a"] = (_xdrop);
+/* unused harmony default export */ var _unused_webpack_default_export = (_xdrop);
 
 /***/ }),
 
@@ -7419,7 +7424,6 @@ var _xdropWhile = /*#__PURE__*/Object(_curry2__WEBPACK_IMPORTED_MODULE_0__[/* de
   !*** ./node_modules/ramda/es/internal/_xfilter.js ***!
   \****************************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -7445,7 +7449,7 @@ var XFilter = /*#__PURE__*/function () {
 var _xfilter = /*#__PURE__*/Object(_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(function _xfilter(f, xf) {
   return new XFilter(f, xf);
 });
-/* harmony default export */ __webpack_exports__["a"] = (_xfilter);
+/* unused harmony default export */ var _unused_webpack_default_export = (_xfilter);
 
 /***/ }),
 
@@ -7633,7 +7637,6 @@ var _xfindLastIndex = /*#__PURE__*/Object(_curry2__WEBPACK_IMPORTED_MODULE_0__[/
   !*** ./node_modules/ramda/es/internal/_xmap.js ***!
   \*************************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -7659,7 +7662,7 @@ var XMap = /*#__PURE__*/function () {
 var _xmap = /*#__PURE__*/Object(_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(function _xmap(f, xf) {
   return new XMap(f, xf);
 });
-/* harmony default export */ __webpack_exports__["a"] = (_xmap);
+/* unused harmony default export */ var _unused_webpack_default_export = (_xmap);
 
 /***/ }),
 
@@ -8387,7 +8390,7 @@ var join = /*#__PURE__*/Object(_invoker__WEBPACK_IMPORTED_MODULE_0__[/* default 
  * @symb R.juxt([f, g, h])(a, b) = [f(a, b), g(a, b), h(a, b)]
  */
 var juxt = /*#__PURE__*/Object(_internal_curry1__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(function juxt(fns) {
-  return Object(_converge__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(function () {
+  return Object(_converge__WEBPACK_IMPORTED_MODULE_1__[/* default */ false])(function () {
     return Array.prototype.slice.call(arguments, 0);
   }, fns);
 });
@@ -8458,7 +8461,7 @@ var _keys = typeof Object.keys === 'function' && !hasArgsEnumBug ? function keys
   }
   var prop, nIdx;
   var ks = [];
-  var checkArgsLength = hasArgsEnumBug && Object(_internal_isArguments__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(obj);
+  var checkArgsLength = hasArgsEnumBug && Object(_internal_isArguments__WEBPACK_IMPORTED_MODULE_2__[/* default */ false])(obj);
   for (prop in obj) {
     if (Object(_internal_has__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(prop, obj) && (!checkArgsLength || prop !== 'length')) {
       ks[ks.length] = prop;
@@ -9063,7 +9066,7 @@ var lte = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* d
  * @symb R.map(f, { x: a, y: b }) = { x: f(a), y: f(b) }
  * @symb R.map(f, functor_o) = functor_o.map(f)
  */
-var map = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])( /*#__PURE__*/Object(_internal_dispatchable__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(['fantasy-land/map', 'map'], _internal_xmap__WEBPACK_IMPORTED_MODULE_4__[/* default */ "a"], function map(fn, functor) {
+var map = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])( /*#__PURE__*/Object(_internal_dispatchable__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(['fantasy-land/map', 'map'], _internal_xmap__WEBPACK_IMPORTED_MODULE_4__[/* default */ false], function map(fn, functor) {
   switch (Object.prototype.toString.call(functor)) {
     case '[object Function]':
       return Object(_curryN__WEBPACK_IMPORTED_MODULE_5__[/* default */ "a"])(functor.length, function () {
@@ -9459,7 +9462,7 @@ var maxBy = /*#__PURE__*/Object(_internal_curry3__WEBPACK_IMPORTED_MODULE_0__[/*
  *      R.mean([]); //=> NaN
  */
 var mean = /*#__PURE__*/Object(_internal_curry1__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(function mean(list) {
-  return Object(_sum__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(list) / list.length;
+  return Object(_sum__WEBPACK_IMPORTED_MODULE_1__[/* default */ false])(list) / list.length;
 });
 /* harmony default export */ __webpack_exports__["a"] = (mean);
 
@@ -10506,7 +10509,6 @@ var o = /*#__PURE__*/Object(_internal_curry3__WEBPACK_IMPORTED_MODULE_0__[/* def
   !*** ./node_modules/ramda/es/objOf.js ***!
   \****************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -10538,7 +10540,7 @@ var objOf = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/*
   obj[key] = val;
   return obj;
 });
-/* harmony default export */ __webpack_exports__["a"] = (objOf);
+/* unused harmony default export */ var _unused_webpack_default_export = (objOf);
 
 /***/ }),
 
@@ -11246,11 +11248,10 @@ var pickBy = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/
   !*** ./node_modules/ramda/es/pipe.js ***!
   \***************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return pipe; });
+/* unused harmony export default */
 /* harmony import */ var _internal_arity__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./internal/_arity */ "./node_modules/ramda/es/internal/_arity.js");
 /* harmony import */ var _internal_pipe__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./internal/_pipe */ "./node_modules/ramda/es/internal/_pipe.js");
 /* harmony import */ var _reduce__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./reduce */ "./node_modules/ramda/es/reduce.js");
@@ -11448,7 +11449,6 @@ var pluck = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/*
   !*** ./node_modules/ramda/es/prepend.js ***!
   \******************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -11477,7 +11477,7 @@ var pluck = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/*
 var prepend = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(function prepend(el, list) {
   return Object(_internal_concat__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])([el], list);
 });
-/* harmony default export */ __webpack_exports__["a"] = (prepend);
+/* unused harmony default export */ var _unused_webpack_default_export = (prepend);
 
 /***/ }),
 
@@ -12000,7 +12000,6 @@ var reduceBy = /*#__PURE__*/Object(_internal_curryN__WEBPACK_IMPORTED_MODULE_0__
   !*** ./node_modules/ramda/es/reduceRight.js ***!
   \**********************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -12057,7 +12056,7 @@ var reduceRight = /*#__PURE__*/Object(_internal_curry3__WEBPACK_IMPORTED_MODULE_
   }
   return acc;
 });
-/* harmony default export */ __webpack_exports__["a"] = (reduceRight);
+/* unused harmony default export */ var _unused_webpack_default_export = (reduceRight);
 
 /***/ }),
 
@@ -12463,8 +12462,8 @@ var scan = /*#__PURE__*/Object(_internal_curry3__WEBPACK_IMPORTED_MODULE_0__[/* 
  *      R.sequence(R.of, Nothing());       //=> [Nothing()]
  */
 var sequence = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"])(function sequence(of, traversable) {
-  return typeof traversable.sequence === 'function' ? traversable.sequence(of) : Object(_reduceRight__WEBPACK_IMPORTED_MODULE_4__[/* default */ "a"])(function (x, acc) {
-    return Object(_ap__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(Object(_map__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(_prepend__WEBPACK_IMPORTED_MODULE_3__[/* default */ "a"], x), acc);
+  return typeof traversable.sequence === 'function' ? traversable.sequence(of) : Object(_reduceRight__WEBPACK_IMPORTED_MODULE_4__[/* default */ false])(function (x, acc) {
+    return Object(_ap__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(Object(_map__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(_prepend__WEBPACK_IMPORTED_MODULE_3__[/* default */ false], x), acc);
   }, of([]), traversable);
 });
 /* harmony default export */ __webpack_exports__["a"] = (sequence);
@@ -12964,7 +12963,6 @@ var subtract = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__
   !*** ./node_modules/ramda/es/sum.js ***!
   \**************************************/
 /*! exports provided: default */
-/*! exports used: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -12989,7 +12987,7 @@ var subtract = /*#__PURE__*/Object(_internal_curry2__WEBPACK_IMPORTED_MODULE_0__
  *      R.sum([2,4,6,8,100,1]); //=> 121
  */
 var sum = /*#__PURE__*/Object(_reduce__WEBPACK_IMPORTED_MODULE_1__[/* default */ "a"])(_add__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"], 0);
-/* harmony default export */ __webpack_exports__["a"] = (sum);
+/* unused harmony default export */ var _unused_webpack_default_export = (sum);
 
 /***/ }),
 

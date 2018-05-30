@@ -7,6 +7,9 @@
   "private": true,
   "dependencies": {
     "lodash": "^4.17.10",
-    "ramda": "^0.25.0"
+    "ramda": "^0.25.0",
+    "webpack": "^4.10.1",
+    "webpack-cli": "^2.1.4",
+    "webpack-deep-scope-plugin": "^1.1.7"
   }
 }
