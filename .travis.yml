@@ -3,6 +3,7 @@ node_js:
   - "9"
 script:
   - npm install --global lerna
+  - lerna bootstrap
   - lerna run tslint
   - lerna run build
   - lerna run test
