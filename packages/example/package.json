@@ -1,0 +1,11 @@
+{
+  "name": "default",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "sideEffects": false,
+  "dependencies": {
+    "lodash": "^4.17.10",
+    "ramda": "^0.25.0"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "webpack-deep-scope-plugin",
+  "version": "1.1.6",
+  "main": "index.js",
+  "author": "Vincent Chan",
+  "license": "MIT",
+  "devDependencies": {
+    "webpack": "^4.8.3"
+  },
+  "dependencies": {
+    "webpack-deep-scope-analysis": "^1.1.3"
+  }
+}
