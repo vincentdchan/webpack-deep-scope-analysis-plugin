@@ -5,12 +5,13 @@ import { Referencer } from "../referencer";
 import * as ESTree from "estree";
 import { Scope, ModuleScope } from "../scope";
 import { Reference } from "../reference";
+import { IComment } from "./comment";
 import * as R from "ramda";
 import {
   ImportIdentifierInfo,
   ImportManager,
 } from "../importManager";
-import { ModuleChildScopeInfo } from "./moduleChildScopeInfo";
+import { ChildScopesTraverser } from "./childScopesTraverser";
 import { Variable } from "../variable";
 import { Definition } from "../definition";
 import { Declaration, DeclarationType } from "./Declaration";
@@ -19,10 +20,20 @@ export interface Dictionary<T> {
   [index: string]: T;
 }
 
+// flatMap polyfill
+Object.defineProperty(Array.prototype, "flatMap", {
+  value(this: any[], f: any) {
+    return this.reduce((ys: any, x: any) => {
+      return ys.concat(f.call(this, x));
+    }, []);
+  },
+  enumerable: false,
+});
+
 export class ModuleAnalyser {
-  public readonly childFunctionScopeInfo: Map<
+  public readonly childScopesTraverserMap: Map<
     string,
-    ModuleChildScopeInfo
+    ChildScopesTraverser
   > = new Map();
   public readonly internalUsedScopeIds: string[] = [];
 
@@ -46,6 +57,7 @@ export class ModuleAnalyser {
       ecmaVersion: 6,
       childVisitorKeys: null,
       fallback: "iteration",
+      comments: [],
     };
   }
 
@@ -65,15 +77,18 @@ export class ModuleAnalyser {
     );
     this.scopeManager = scopeManager;
 
+    this.resolvePureVariables();
     this.analyzeImportExport();
   }
 
-  private analyzeImportExport() {
+  private resolvePureVariables() {}
+
+  private get moduleScopeDeclarations() {
     const moduleScope = this.moduleScope;
+    const declarations: Declaration[] = [];
 
     const { importManager, exportManager } = moduleScope;
 
-    const declarations: Declaration[] = [];
     for (let i = 0; i < moduleScope.variables.length; i++) {
       const variable = moduleScope.variables[i];
       const def = variable.defs[0];
@@ -163,21 +178,23 @@ export class ModuleAnalyser {
       }
     }
 
-    // find all the function & class scopes under modules
-    const dependentScopes = R.flatten<Scope>(
-      R.map<Declaration, Scope[]>(
-        decl => decl.scopes,
-        declarations,
-      ),
-    );
+    return declarations;
+  }
 
+  private analyzeImportExport() {
+    const moduleScope = this.moduleScope;
+    const declarations = this.moduleScopeDeclarations;
+
+    // find all the function & class scopes under modules
+    const dependentScopes = declarations.flatMap(
+      decl => decl.scopes,
+    );
     // deep scope analysis of all child scopes
     const visitedSet = new WeakSet();
     this.handleDeclarations(declarations, visitedSet);
 
-    const independentScopes = R.filter<Scope>(
+    const independentScopes = moduleScope.childScopes.filter(
       item => !visitedSet.has(item),
-      moduleScope.childScopes,
     );
     this.handleIndependentScopes(independentScopes);
 
@@ -188,7 +205,9 @@ export class ModuleAnalyser {
   }
 
   public generateExportInfo(usedExport: string[]) {
-    const moduleScopeIds = this.internalUsedScopeIds.concat(this.findExportLocalNames(usedExport));
+    const moduleScopeIds = this.internalUsedScopeIds.concat(
+      this.findExportLocalNames(usedExport),
+    );
     const importManager = this.moduleScope.importManager;
     const result = importManager.ids
       .filter(item => item.mustBeImported)
@@ -197,29 +216,29 @@ export class ModuleAnalyser {
         moduleName: item.moduleName,
       }));
 
-    const visitedScopeInfoSet = new WeakSet<
-      ModuleChildScopeInfo
+    const visitedTraverserSet = new WeakSet<
+      ChildScopesTraverser
     >();
 
-    const visitScopeInfo = (
-      scopeInfo: ModuleChildScopeInfo,
+    const visitTraverser = (
+      traverser: ChildScopesTraverser,
     ) => {
-      if (visitedScopeInfoSet.has(scopeInfo)) return;
-      visitedScopeInfoSet.add(scopeInfo);
+      if (visitedTraverserSet.has(traverser)) return;
+      visitedTraverserSet.add(traverser);
 
-      scopeInfo.refsToModule.forEach(([ref, importIdInfo]) => {
-        if (importIdInfo !== null) {
+      traverser.refsToModule.forEach(([ref, info]) => {
+        if (info !== null) {
           result.push({
-            sourceName: importIdInfo.sourceName,
-            moduleName: importIdInfo.moduleName,
+            sourceName: info.sourceName,
+            moduleName: info.moduleName,
           });
         }
 
         if (
-          this.childFunctionScopeInfo.has(ref.identifier.name)
+          this.childScopesTraverserMap.has(ref.identifier.name)
         ) {
-          visitScopeInfo(
-            this.childFunctionScopeInfo.get(
+          visitTraverser(
+            this.childScopesTraverserMap.get(
               ref.identifier.name,
             )!,
           );
@@ -228,33 +247,34 @@ export class ModuleAnalyser {
     };
 
     // find all related scopes
-    [...this.childFunctionScopeInfo.entries()]
-      .filter(([funName, scopeInfo]) =>
-        R.contains(funName, moduleScopeIds),
-      )
-      .forEach(([funName, scopeInfo]) =>
-        visitScopeInfo(scopeInfo),
-      );
+    for (const [funName, traverser] of this.childScopesTraverserMap) {
+      if (moduleScopeIds.indexOf(funName) >= 0) {
+        visitTraverser(traverser);
+      }
+    }
 
-    return R.toPairs<string[]>(
-      result.reduce(
-        // to pairs
-        (acc: Dictionary<string[]>, item) => {
-          // group by moduleName
-          const { moduleName } = item;
-          (acc[moduleName] || (acc[moduleName] = [])).push(
-            item.sourceName,
-          ); // check the map and push
-          return acc;
-        },
-        {},
-      ),
-    )
-      .map(([moduleName, sourceNames]): [string, string[]] => [
-        // uniq the sourceNames
-        moduleName,
-        R.uniq(sourceNames),
-      ])
+    const groups: Dictionary<string[]> = result.reduce(
+      // to pairs
+      (acc: Dictionary<string[]>, item) => {
+        // group by moduleName
+        const { moduleName } = item;
+        (acc[moduleName] || (acc[moduleName] = [])).push(
+          item.sourceName,
+        ); // check the map and push
+        return acc;
+      },
+      {},
+    );
+
+    return Object
+      .entries(groups)
+      .map(
+        ([moduleName, sourceNames]): [string, string[]] => [
+          // uniq the sourceNames
+          moduleName,
+          [...new Set(sourceNames)],
+        ],
+      )
       .reduce(
         // from tuples to map
         (
@@ -290,21 +310,21 @@ export class ModuleAnalyser {
       if (!decl.scopes) return;
       decl.scopes.forEach(scope => {
         visitedSet.add(scope);
-        const info = new ModuleChildScopeInfo(
+        const traverser = new ChildScopesTraverser(
           scope,
           this.moduleScope.importManager,
         );
-        this.childFunctionScopeInfo.set(decl.name, info);
+        this.childScopesTraverserMap.set(decl.name, traverser);
       });
     })
 
   private handleIndependentScopes = (scopes: Scope[]) =>
     scopes.forEach(scope => {
-      const info = new ModuleChildScopeInfo(
+      const traverser = new ChildScopesTraverser(
         scope,
         this.moduleScope.importManager,
       );
-      info.refsToModule.forEach(([ref, info]) => {
+      traverser.refsToModule.forEach(([ref, info]) => {
         if (info !== null) {
           info.mustBeImported = true;
         }
@@ -322,12 +342,12 @@ export class ModuleAnalyser {
       const importId = this.moduleScope.importManager.idMap.get(
         resolvedName,
       );
-      const moduleChildrenInfo = this.childFunctionScopeInfo.get(
+      const traverser = this.childScopesTraverserMap.get(
         resolvedName,
       );
       if (importId) {
         importId.mustBeImported = true;
-      } else if (moduleChildrenInfo && !ref.init) {
+      } else if (traverser && !ref.init) {
         this.internalUsedScopeIds.push(ref.identifier.name);
       }
     });

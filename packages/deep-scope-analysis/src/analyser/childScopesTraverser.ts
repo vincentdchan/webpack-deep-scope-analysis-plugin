@@ -7,7 +7,7 @@ import { Reference } from "../reference";
 
 export type RefTuple = [Reference, ImportIdentifierInfo | null];
 
-export class ModuleChildScopeInfo {
+export class ChildScopesTraverser {
   public readonly refsToModule: RefTuple[] = [];
 
   constructor(
