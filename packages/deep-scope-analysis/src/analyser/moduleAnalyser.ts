@@ -6,7 +6,6 @@ import * as ESTree from "estree";
 import { Scope, ModuleScope } from "../scope";
 import { Reference } from "../reference";
 import { IComment } from "./comment";
-import * as R from "ramda";
 import {
   ImportIdentifierInfo,
   ImportManager,
@@ -141,11 +140,11 @@ export class ModuleAnalyser {
       }
     }
 
-    const isFunction = (node: ESTree.Node) =>
-      R.contains(node.type, [
-        "FunctionDeclaration",
-        "ArrowFunctionExpression",
-      ]);
+    const isFunction = (node: ESTree.Node) => [
+      "FunctionDeclaration",
+      "ArrowFunctionExpression",
+    ].indexOf(node.type) >= 0;
+
     if (exportManager.exportDefaultDeclaration) {
       if (isFunction(exportManager.exportDefaultDeclaration)) {
         const declaration =
@@ -209,7 +208,7 @@ export class ModuleAnalyser {
       this.findExportLocalNames(usedExport),
     );
     const importManager = this.moduleScope.importManager;
-    const result = importManager.ids
+    const resultList = importManager.ids
       .filter(item => item.mustBeImported)
       .map(item => ({
         sourceName: item.sourceName,
@@ -228,7 +227,7 @@ export class ModuleAnalyser {
 
       traverser.refsToModule.forEach(([ref, info]) => {
         if (info !== null) {
-          result.push({
+          resultList.push({
             sourceName: info.sourceName,
             moduleName: info.moduleName,
           });
@@ -253,39 +252,22 @@ export class ModuleAnalyser {
       }
     }
 
-    const groups: Dictionary<string[]> = result.reduce(
-      // to pairs
-      (acc: Dictionary<string[]>, item) => {
-        // group by moduleName
-        const { moduleName } = item;
-        (acc[moduleName] || (acc[moduleName] = [])).push(
-          item.sourceName,
-        ); // check the map and push
-        return acc;
-      },
-      {},
-    );
+    const resultMap: Dictionary<Set<string>> = {};
+
+    resultList.forEach(({ sourceName, moduleName }) => {
+      if (moduleName in resultMap) {
+        resultMap[moduleName].add(sourceName);
+      } else {
+        resultMap[moduleName] = new Set([sourceName]);
+      }
+    });
 
     return Object
-      .entries(groups)
-      .map(
-        ([moduleName, sourceNames]): [string, string[]] => [
-          // uniq the sourceNames
-          moduleName,
-          [...new Set(sourceNames)],
-        ],
-      )
-      .reduce(
-        // from tuples to map
-        (
-          acc: Dictionary<string[]>,
-          [moduleName, sourceNames],
-        ) => {
-          acc[moduleName] = sourceNames.sort();
-          return acc;
-        },
-        {},
-      );
+      .entries(resultMap)
+      .reduce((acc: Dictionary<string[]>, [moduleName, sourceNameSet]) => {
+        acc[moduleName] = [...sourceNameSet].sort();
+        return acc;
+      }, {});
   }
 
   private findExportLocalNames(usedExport: string[]) {
