@@ -50,18 +50,19 @@ class WebpackDeepScopeAnalysisPlugin {
 
           parser.hooks.program.tap(
             pluginName,
-            (ast) => {
+            (ast, comments) => {
               // console.log(normalModuleFactory);
               // if (this.moduleMap.has())
               const resourceName = parser.state.module.resource;
               if (!this.moduleMap.has(resourceName)) {
                 // console.log(resourceName);
                 const analyser = new ModuleAnalyser(resourceName, parser.state.module);
-                analyser.analyze(ast);
+                analyser.analyze(ast, {
+                  comments,
+                });
                 this.moduleMap.set(resourceName, analyser);
                 parser.state.deepScopeAnalyserMap = this.moduleMap;
               }
-              // debugger;
               // if (
               //   !moduleManager.map.has(moduleAnalyser.name)
               // ) {
