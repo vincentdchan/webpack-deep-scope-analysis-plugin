@@ -10,6 +10,6 @@
     "ramda": "^0.25.0",
     "webpack": "^4.10.1",
     "webpack-cli": "^2.1.4",
-    "webpack-deep-scope-plugin": "^1.1.12"
+    "webpack-deep-scope-plugin": "^1.2.0"
   }
 }
