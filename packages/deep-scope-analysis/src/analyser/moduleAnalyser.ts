@@ -6,14 +6,12 @@ import * as ESTree from "estree";
 import { Scope, ModuleScope } from "../scope";
 import { Reference } from "../reference";
 import { IComment } from "./comment";
-import {
-  ImportIdentifierInfo,
-  ImportManager,
-} from "../importManager";
+import { ImportIdentifierInfo, ImportManager } from "../importManager";
 import { ChildScopesTraverser } from "./childScopesTraverser";
 import { Variable } from "../variable";
 import { Definition } from "../definition";
-import { Declaration, DeclarationType } from "./Declaration";
+import { RootDeclaration, RootDeclarationType } from "./rootDeclaration";
+import rootDeclarationResolver from "./rootDeclarationResolver";
 
 export interface Dictionary<T> {
   [index: string]: T;
@@ -35,6 +33,13 @@ export class ModuleAnalyser {
     ChildScopesTraverser
   > = new Map();
   public readonly internalUsedScopeIds: string[] = [];
+
+  private comments: IComment[] = [];
+
+  /**
+   * Set of end offset of @__PURE__ or #__PURE__
+   */
+  private readonly pureCommentEndsSet: Set<number> = new Set();
 
   public constructor(
     public readonly name: string,
@@ -61,10 +66,8 @@ export class ModuleAnalyser {
   }
 
   public analyze(tree: ESTree.Node, providedOptions?: any) {
-    const options = this.updateDeeply(
-      this.defaultOptions(),
-      providedOptions,
-    );
+    const options = this.updateDeeply(this.defaultOptions(), providedOptions);
+    this.comments = options.comments;
     const scopeManager = new ScopeManager(options);
     const referencer = new Referencer(options, scopeManager);
 
@@ -80,104 +83,67 @@ export class ModuleAnalyser {
     this.analyzeImportExport();
   }
 
+  // find all the pure annotation
+  private processComments() {
+    this.comments.forEach(comment => {
+      if (comment.type === "Block" && /(@|#)__PURE__/.test(comment.value)) {
+        this.pureCommentEndsSet.add(comment.end);
+      }
+    });
+  }
+
   private resolvePureVariables() {}
 
   private get moduleScopeDeclarations() {
     const moduleScope = this.moduleScope;
-    const declarations: Declaration[] = [];
+    const declarations: RootDeclaration[] = [];
 
     const { importManager, exportManager } = moduleScope;
+    const resolver = rootDeclarationResolver(declarations, this.scopeManager!);
 
     for (let i = 0; i < moduleScope.variables.length; i++) {
       const variable = moduleScope.variables[i];
-      const def = variable.defs[0];
-      if (def.node.type === "FunctionDeclaration") {
-        declarations.push(
-          new Declaration(
-            DeclarationType.Function,
-            variable.name,
-            def.node,
-            this.scopeManager!.__nodeToScope.get(def.node)!,
-          ),
-        );
-      } else if (def.node.type === "ClassDeclaration") {
-        declarations.push(
-          new Declaration(
-            DeclarationType.Class,
-            variable.name,
-            def.node,
-            this.scopeManager!.__nodeToScope.get(def.node)!,
-          ),
-        );
-      } else if (
-        def.kind === "const" &&
-        def.node.type === "VariableDeclarator" &&
-        def.node.init
-      ) {
-        const { init } = def.node;
-        if (init.type === "ClassExpression") {
-          declarations.push(
-            new Declaration(
-              DeclarationType.Class,
-              variable.name,
-              init,
-              this.scopeManager!.__nodeToScope.get(init)!,
-            ),
-          );
-        } else if (
-          init.type === "FunctionExpression" ||
-          init.type === "ArrowFunctionExpression"
-        ) {
-          declarations.push(
-            new Declaration(
-              DeclarationType.Function,
-              variable.name,
-              init,
-              this.scopeManager!.__nodeToScope.get(init)!,
-            ),
-          );
-        }
-      }
+      resolver(variable);
     }
 
-    const isFunction = (node: ESTree.Node) => [
-      "FunctionDeclaration",
-      "ArrowFunctionExpression",
-    ].indexOf(node.type) >= 0;
+    // resolve export declaration
+    this.resolveExportDeclaration(declarations);
+    return declarations;
+  }
+
+  private resolveExportDeclaration(declarations: RootDeclaration[]) {
+    const moduleScope = this.moduleScope;
+    const { exportManager } = moduleScope;
+
+    const isFunction = (node: ESTree.Node) =>
+      ["FunctionDeclaration", "ArrowFunctionExpression"].indexOf(node.type) >= 0;
 
     if (exportManager.exportDefaultDeclaration) {
       if (isFunction(exportManager.exportDefaultDeclaration)) {
-        const declaration =
-          exportManager.exportDefaultDeclaration;
+        const declaration = exportManager.exportDefaultDeclaration;
         declarations.push(
-          new Declaration(
-            DeclarationType.Function,
+          new RootDeclaration(
+            RootDeclarationType.Function,
             "default",
             declaration,
             this.scopeManager!.__nodeToScope.get(declaration)!,
           ),
         );
-      } else if (
-        exportManager.exportDefaultDeclaration.type ===
-        "Identifier"
-      ) {
+      } else if (exportManager.exportDefaultDeclaration.type === "Identifier") {
         const id = exportManager.exportDefaultDeclaration as ESTree.Identifier;
         const idName = id.name;
         const variable = moduleScope.set.get(idName)!;
         declarations.push(
-          new Declaration(
-            DeclarationType.Function,
+          new RootDeclaration(
+            RootDeclarationType.Function,
             "default",
             id,
-            this.scopeManager!.__nodeToScope.get(
-              variable.defs[0].node,
-            )!,
+            this.scopeManager!.__nodeToScope.get(variable.defs[0].node)!,
           ),
         );
       }
     }
 
-    return declarations;
   }
 
   private analyzeImportExport() {
@@ -185,9 +151,7 @@ export class ModuleAnalyser {
     const declarations = this.moduleScopeDeclarations;
 
     // find all the function & class scopes under modules
-    const dependentScopes = declarations.flatMap(
-      decl => decl.scopes,
-    );
+    const dependentScopes = declarations.flatMap(decl => decl.scopes);
     // deep scope analysis of all child scopes
     const visitedSet = new WeakSet();
     this.handleDeclarations(declarations, visitedSet);
@@ -215,13 +179,9 @@ export class ModuleAnalyser {
         moduleName: item.moduleName,
       }));
 
-    const visitedTraverserSet = new WeakSet<
-      ChildScopesTraverser
-    >();
+    const visitedTraverserSet = new WeakSet<ChildScopesTraverser>();
 
-    const visitTraverser = (
-      traverser: ChildScopesTraverser,
-    ) => {
+    const visitTraverser = (traverser: ChildScopesTraverser) => {
       if (visitedTraverserSet.has(traverser)) return;
       visitedTraverserSet.add(traverser);
 
@@ -233,13 +193,9 @@ export class ModuleAnalyser {
           });
         }
 
-        if (
-          this.childScopesTraverserMap.has(ref.identifier.name)
-        ) {
+        if (this.childScopesTraverserMap.has(ref.identifier.name)) {
           visitTraverser(
-            this.childScopesTraverserMap.get(
-              ref.identifier.name,
-            )!,
+            this.childScopesTraverserMap.get(ref.identifier.name)!,
           );
         }
       });
@@ -262,30 +218,24 @@ export class ModuleAnalyser {
       }
     });
 
-    return Object
-      .entries(resultMap)
-      .reduce((acc: Dictionary<string[]>, [moduleName, sourceNameSet]) => {
+    return Object.entries(resultMap).reduce(
+      (acc: Dictionary<string[]>, [moduleName, sourceNameSet]) => {
         acc[moduleName] = [...sourceNameSet].sort();
         return acc;
-      }, {});
+      },
+      {},
+    );
   }
 
   private findExportLocalNames(usedExport: string[]) {
     return usedExport
-      .map(
-        id =>
-          this.moduleScope.exportManager.localIdMap.get(id)!,
-      )
-      .filter(
-        info =>
-          info.localName !== null ||
-          info.exportName === "default",
-      )
+      .map(id => this.moduleScope.exportManager.localIdMap.get(id)!)
+      .filter(info => info.localName !== null || info.exportName === "default")
       .map(info => info.localName || info.exportName);
   }
 
   private handleDeclarations = (
-    decls: Declaration[],
+    decls: RootDeclaration[],
     visitedSet: WeakSet<Scope>,
   ) =>
     decls.forEach(decl => {
@@ -315,18 +265,13 @@ export class ModuleAnalyser {
 
   private handleNotExportReferences = (refs: Reference[]) => {
     const moduleScopeRefs = refs.filter(
-      ref =>
-        ref.resolved && ref.resolved.scope.type === "module",
+      ref => ref.resolved && ref.resolved.scope.type === "module",
     );
 
     moduleScopeRefs.forEach(ref => {
       const resolvedName = ref.resolved!.name;
-      const importId = this.moduleScope.importManager.idMap.get(
-        resolvedName,
-      );
-      const traverser = this.childScopesTraverserMap.get(
-        resolvedName,
-      );
+      const importId = this.moduleScope.importManager.idMap.get(resolvedName);
+      const traverser = this.childScopesTraverserMap.get(resolvedName);
       if (importId) {
         importId.mustBeImported = true;
       } else if (traverser && !ref.init) {

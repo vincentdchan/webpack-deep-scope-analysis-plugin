@@ -1,4 +1,4 @@
-import { im1, im2, im3 } from 'any'
+import { im1, im2 } from 'any'
 
 const exp1 = function () {
   console.log(im1);
@@ -7,11 +7,6 @@ const exp1 = function () {
 const exp2 = () => {
   console.log(im2);
 }
-
-var exp3 = function () {
-  console.log(im3);
-}
-
 export const exp4 = () => {
   exp2();
 }
@@ -27,5 +22,4 @@ export const expCls = class {
 export {
   exp1,
   exp2,
-  exp3,
 }
