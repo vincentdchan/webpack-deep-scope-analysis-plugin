@@ -17,14 +17,18 @@ describe("test fixtures", function() {
   inputFiles.forEach(inputDirName => {
     const inputFilename = path.join(fixturesPath, inputDirName, INPUT_FILENAME);
     const inputFileContent = fs.readFileSync(inputFilename, 'utf8');
+    const comments = [];
     const ast = acorn.parse(inputFileContent, {
       ranges: true,
       locations: true,
       ecmaVersion: 2017,
       sourceType: "module",
+      onComment: comments,
     });
     const analyser = new ModuleAnalyser(inputFilename, null);
-    analyser.analyze(ast);
+    analyser.analyze(ast, {
+      comments
+    });
 
     const caseDir = path.join(fixturesPath, inputDirName, 'cases');
     const casesFiles = fs.readdirSync(caseDir);

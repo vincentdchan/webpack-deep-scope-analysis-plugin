@@ -6,10 +6,7 @@ import * as ESTree from "estree";
 import { Scope, ModuleScope } from "../scope";
 import { Reference } from "../reference";
 import { IComment } from "./comment";
-import { ImportIdentifierInfo, ImportManager } from "../importManager";
 import { ChildScopesTraverser } from "./childScopesTraverser";
-import { Variable } from "../variable";
-import { Definition } from "../definition";
 import { RootDeclaration, RootDeclarationType } from "./rootDeclaration";
 import rootDeclarationResolver from "./rootDeclarationResolver";
 
@@ -35,11 +32,6 @@ export class ModuleAnalyser {
   public readonly internalUsedScopeIds: string[] = [];
 
   private comments: IComment[] = [];
-
-  /**
-   * Set of end offset of @__PURE__ or #__PURE__
-   */
-  private readonly pureCommentEndsSet: Set<number> = new Set();
 
   public constructor(
     public readonly name: string,
@@ -83,13 +75,18 @@ export class ModuleAnalyser {
     this.analyzeImportExport();
   }
 
-  // find all the pure annotation
+  /**
+   * find all the pure annotation
+   * Set of end offset of @__PURE__ or #__PURE__
+   */
   private processComments() {
+    const pureCommentEndsSet: Set<number> = new Set();
     this.comments.forEach(comment => {
       if (comment.type === "Block" && /(@|#)__PURE__/.test(comment.value)) {
-        this.pureCommentEndsSet.add(comment.end);
+        pureCommentEndsSet.add(comment.end);
       }
     });
+    return pureCommentEndsSet;
   }
 
   private resolvePureVariables() {}
@@ -99,7 +96,8 @@ export class ModuleAnalyser {
     const declarations: RootDeclaration[] = [];
 
     const { importManager, exportManager } = moduleScope;
-    const resolver = rootDeclarationResolver(declarations, this.scopeManager!);
+    const pureCommentEndsSet = this.processComments();
+    const resolver = rootDeclarationResolver(declarations, this.scopeManager!, pureCommentEndsSet);
 
     for (let i = 0; i < moduleScope.variables.length; i++) {
       const variable = moduleScope.variables[i];
