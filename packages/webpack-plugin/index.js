@@ -9,11 +9,9 @@ const {
 } = require("webpack-deep-scope-analysis");
 // const version = require("./package.json").version;
 
-
 const pluginName = "WebpackDeepScopeAnalysisPlugin";
 
 class WebpackDeepScopeAnalysisPlugin {
-
   constructor() {
     this.moduleMap = new Map();
   }
@@ -22,59 +20,58 @@ class WebpackDeepScopeAnalysisPlugin {
     compiler.hooks.compilation.tap(
       pluginName,
       (compilation, { normalModuleFactory }) => {
-        // let moduleAnalyser = new ModuleAnalyser(;
+        const moduleAnalyser = new ModuleAnalyser();
+
+        compilation.hooks.dependencyReference.tap(
+          pluginName,
+          (depRef, dep, module) => {
+            if (dep.type === "harmony import specifier") {
+              const moduleScopeAnalyser = this.moduleMap.get(module.resource);
+              const { usedExports } = dep.originModule;
+              if (
+                usedExports &&
+                dep._id &&
+                !dep.namespaceObjectAsContext &&
+                Array.isArray(usedExports)
+              ) {
+                const exportInfo = moduleScopeAnalyser.generateExportInfo(usedExports);
+                if (dep.request in exportInfo) {
+                  const names = exportInfo[dep.request];
+                  if (names.indexOf(dep._id) >= 0) {
+                    return depRef;
+                  } else {
+                    return null;
+                  }
+                } else {
+                  return null;
+                }
+              }
+            }
+          },
+        );
 
         const handler = (parser, parserOptions) => {
-					if (
-						typeof parserOptions.harmony !== "undefined" &&
-						!parserOptions.harmony
-					)
+          if (
+            typeof parserOptions.harmony !== "undefined" &&
+            !parserOptions.harmony
+          ) {
             return;
+          }
 
-          parser.hooks.import.tap(
-            pluginName,
-            (statement, source) => {
-              // console.log(parser);
-              // debugger;
+          parser.hooks.program.tap(pluginName, (ast, comments) => {
+            // console.log(normalModuleFactory);
+            // if (this.moduleMap.has())
+            const resourceName = parser.state.module.resource;
+            if (!this.moduleMap.has(resourceName)) {
+              // console.log(resourceName);
+              const analyser = new ModuleAnalyser(resourceName, parser.state.module);
+              analyser.analyze(ast, {
+                comments,
+              });
+              this.moduleMap.set(resourceName, analyser);
             }
-          );
-
-          parser.hooks.importSpecifier.tap(
-            pluginName,
-            (statement, source, id, name) => {
-              // console.log(parser);
-              // debugger;
-            }
-          );
-
-
-          parser.hooks.program.tap(
-            pluginName,
-            (ast, comments) => {
-              // console.log(normalModuleFactory);
-              // if (this.moduleMap.has())
-              const resourceName = parser.state.module.resource;
-              if (!this.moduleMap.has(resourceName)) {
-                // console.log(resourceName);
-                const analyser = new ModuleAnalyser(resourceName, parser.state.module);
-                analyser.analyze(ast, {
-                  comments,
-                });
-                this.moduleMap.set(resourceName, analyser);
-                parser.state.deepScopeAnalyserMap = this.moduleMap;
-              }
-              // if (
-              //   !moduleManager.map.has(moduleAnalyser.name)
-              // ) {
-              //   moduleAnalyser.analyze(ast);
-              //   moduleManager.map.set(
-              //     moduleAnalyser.name,
-              //     moduleAnalyser,
-              //   );
-              // }
-            },
-          );
-				};
+          });
+        };
 
         normalModuleFactory.hooks.parser
           .for("javascript/auto")
@@ -83,18 +80,6 @@ class WebpackDeepScopeAnalysisPlugin {
           .for("javascript/esm")
           .tap(pluginName, handler);
 
-        // compilation.hooks.normalModuleLoader.tap(
-        //   pluginName,
-        //   (loaderContext, module) => {
-        //     moduleAnalyser = new ModuleAnalyser(
-        //       module.resource,
-        //       module,
-        //     );
-
-        //     const parser = module.parser;
-
-        //   },
-        // );
       },
     );
   }
