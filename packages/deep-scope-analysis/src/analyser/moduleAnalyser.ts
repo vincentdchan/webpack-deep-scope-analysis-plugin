@@ -144,7 +144,8 @@ export class ModuleAnalyser {
 
     // deep scope analysis of all child scopes
     const visitedSet = new WeakSet();
-    this.findAllReferencesToModuleScope(declarations, visitedSet);
+    const pureIdentifiersSet: WeakSet<ESTree.Identifier> = new WeakSet();
+    this.findAllReferencesToModuleScope(declarations, pureIdentifiersSet, visitedSet);
 
     const independentScopes = moduleScope.childScopes.filter(
       item => !visitedSet.has(item),
@@ -154,6 +155,7 @@ export class ModuleAnalyser {
     // find references that is not in export specifiers
     this.handleNotExportReferences(
       moduleScope.references.filter(ref => !ref.isExport),
+      pureIdentifiersSet,
     );
   }
 
@@ -164,6 +166,7 @@ export class ModuleAnalyser {
    */
   private findAllReferencesToModuleScope = (
     decls: RootDeclaration[],
+    pureIdentifiersSet: WeakSet<ESTree.Identifier>,
     visitedSet: WeakSet<Scope>,
   ) =>
     decls.forEach(decl => {
@@ -174,6 +177,7 @@ export class ModuleAnalyser {
             decl.node as ESTree.VariableDeclarator,
             this.moduleScope,
           );
+          traverser.ids.forEach(id => pureIdentifiersSet.add(id));
           traverser.relevantScopes.forEach(scope => visitedSet.add(scope));
           this.extractorMap.set(decl.name, traverser);
           break;
@@ -271,12 +275,16 @@ export class ModuleAnalyser {
       });
     })
 
-  private handleNotExportReferences = (refs: Reference[]) => {
+  private handleNotExportReferences = (
+    refs: Reference[],
+    pureIdentifiersSet: WeakSet<ESTree.Identifier>,
+  ) => {
     const moduleScopeRefs = refs.filter(
       ref => ref.resolved && ref.resolved.scope.type === "module",
     );
 
     moduleScopeRefs.forEach(ref => {
+      if (pureIdentifiersSet.has(ref.identifier)) return;
       const resolvedName = ref.resolved!.name;
       const importId = this.moduleScope.importManager.idMap.get(resolvedName);
       const extractor = this.extractorMap.get(resolvedName);

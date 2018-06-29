@@ -16,6 +16,7 @@ export class PureDeclaratorTraverser implements RefsToModuleExtractor {
   public readonly refsToModule: NameInfoTuple[] = [];
   public readonly relevantScopes: Scope[] = [];
   public readonly importManager: ImportManager;
+  public readonly ids: ESTree.Identifier[] = [];
 
   public constructor(
     public readonly validatorDeclarator: ESTree.VariableDeclarator,
@@ -34,6 +35,7 @@ export class PureDeclaratorTraverser implements RefsToModuleExtractor {
     estraverse.traverse(validatorDeclarator, {
       enter: (node) => {
         if (node.type === "Identifier") {
+          this.ids.push(node);
           const idName = node.name;
           let importNameInfo: ImportIdentifierInfo | null = null;
           if (this.importManager.idMap.get(idName)) {
