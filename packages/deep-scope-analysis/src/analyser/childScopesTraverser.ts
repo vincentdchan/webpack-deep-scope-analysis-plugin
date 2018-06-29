@@ -2,7 +2,7 @@ import {
   ImportManager,
   ImportIdentifierInfo,
 } from "../importManager";
-import { Scope } from "../scope";
+import { Scope, ModuleScope } from "../scope";
 import * as estraverse from "estraverse";
 import * as ESTree from "estree";
 
@@ -14,11 +14,22 @@ export interface RefsToModuleExtractor {
 
 export class PureDeclaratorTraverser implements RefsToModuleExtractor {
   public readonly refsToModule: NameInfoTuple[] = [];
+  public readonly relevantScopes: Scope[] = [];
+  public readonly importManager: ImportManager;
 
   public constructor(
     public readonly validatorDeclarator: ESTree.VariableDeclarator,
-    public readonly importManager: ImportManager,
+    public readonly moduleScope: ModuleScope,
   ) {
+    this.importManager = moduleScope.importManager;
+
+    // FIXME: improve efficiency
+    moduleScope.childScopes.forEach(scope => {
+      const block = scope.block as any;
+      if (this.nodeContains(validatorDeclarator, block)) {
+        this.relevantScopes.push(scope);
+      }
+    });
 
     estraverse.traverse(validatorDeclarator, {
       enter: (node) => {
@@ -35,6 +46,10 @@ export class PureDeclaratorTraverser implements RefsToModuleExtractor {
       },
     });
 
+  }
+
+  private nodeContains(node1: any, node2: any) {
+    return node2.start >= node1.start && node2.end <= node1.end;
   }
 
 }

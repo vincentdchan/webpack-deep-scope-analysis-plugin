@@ -815,20 +815,26 @@ export class Referencer extends esrecurse.Visitor {
       throw new Error("use export in a non module scope");
     }
 
-    currentScope.exportManager.addLocalExportIdentifier(
-      new LocalExportIdentifier(
-        "default",
-        null,
-        node.declaration,
-      ),
-    );
+    let localExportIdentifier: LocalExportIdentifier;
     if (node.declaration.type === "Identifier") {
+      localExportIdentifier = new LocalExportIdentifier(
+        "default",
+        node.declaration.name,
+        node.declaration,
+      );
       this.isExportingFromLocal = true;
       this.visit(node.declaration);
       this.isExportingFromLocal = false;
     } else {
+      localExportIdentifier = new LocalExportIdentifier(
+        "default",
+        null,
+        node.declaration,
+      );
       this.visit(node.declaration);
     }
+
+    currentScope.exportManager.addLocalExportIdentifier(localExportIdentifier);
   }
 
   public ExportAllDeclaration(

@@ -48,6 +48,7 @@ export default (
           );
         } else if (init.type === "CallExpression") {
           if (pureCommentEndsSet.has(init.range![0])) {
+            // Find all the child Scope here
             declarations.push(new RootDeclaration(RT.PureVariable, variable.name, init, []));
           }
         }

@@ -68,7 +68,6 @@ export class ModuleAnalyser {
     );
     this.scopeManager = scopeManager;
 
-    this.resolvePureVariables();
     this.findAllReferencesForModuleVariables();
   }
 
@@ -85,8 +84,6 @@ export class ModuleAnalyser {
     });
     return pureCommentEndsSet;
   }
-
-  private resolvePureVariables() {}
 
   private get moduleScopeDeclarations() {
     const moduleScope = this.moduleScope;
@@ -145,8 +142,6 @@ export class ModuleAnalyser {
     const moduleScope = this.moduleScope;
     const declarations = this.moduleScopeDeclarations;
 
-    // find all the function & class scopes under modules
-    const dependentScopes = declarations.flatMap(decl => decl.scopes);
     // deep scope analysis of all child scopes
     const visitedSet = new WeakSet();
     this.findAllReferencesToModuleScope(declarations, visitedSet);
@@ -161,6 +156,38 @@ export class ModuleAnalyser {
       moduleScope.references.filter(ref => !ref.isExport),
     );
   }
+
+  /**
+   * traverse scopes
+   * find references to module scope
+   * and tag all relevant scopes
+   */
+  private findAllReferencesToModuleScope = (
+    decls: RootDeclaration[],
+    visitedSet: WeakSet<Scope>,
+  ) =>
+    decls.forEach(decl => {
+      if (!decl.scopes) return;
+      switch (decl.targetType) {
+        case RootDeclarationType.PureVariable:
+          const traverser = new PureDeclaratorTraverser(
+            decl.node as ESTree.VariableDeclarator,
+            this.moduleScope,
+          );
+          traverser.relevantScopes.forEach(scope => visitedSet.add(scope));
+          this.extractorMap.set(decl.name, traverser);
+          break;
+        default:
+          decl.scopes.forEach(scope => {
+            visitedSet.add(scope);
+            this.extractorMap.set(decl.name, new ChildScopesTraverser(
+              scope,
+              this.moduleScope.importManager,
+            ));
+          });
+          break;
+      }
+    })
 
   public generateExportInfo(usedExport: string[]) {
     const moduleScopeIds = this.internalUsedScopeIds.concat(
@@ -226,36 +253,6 @@ export class ModuleAnalyser {
       .filter(info => info.localName !== null || info.exportName === "default")
       .map(info => info.localName || info.exportName);
   }
-
-  /**
-   * traverse scopes
-   * find references to module scope
-   * and tag all relevant scopes
-   */
-  private findAllReferencesToModuleScope = (
-    decls: RootDeclaration[],
-    visitedSet: WeakSet<Scope>,
-  ) =>
-    decls.forEach(decl => {
-      if (!decl.scopes) return;
-      switch (decl.targetType) {
-        case RootDeclarationType.PureVariable:
-          this.extractorMap.set(decl.name, new PureDeclaratorTraverser(
-            decl.node as ESTree.VariableDeclarator,
-            this.moduleScope.importManager,
-          ));
-          break;
-        default:
-          decl.scopes.forEach(scope => {
-            visitedSet.add(scope);
-            this.extractorMap.set(decl.name, new ChildScopesTraverser(
-              scope,
-              this.moduleScope.importManager,
-            ));
-          });
-          break;
-      }
-    })
 
   /**
    * traverse all independent scopes
