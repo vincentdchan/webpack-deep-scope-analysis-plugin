@@ -1,6 +1,6 @@
 {
   "name": "webpack-deep-scope-plugin",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "main": "index.js",
   "author": "Vincent Chan",
   "license": "MIT",
