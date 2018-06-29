@@ -6,7 +6,7 @@ import * as ESTree from "estree";
 import { Scope, ModuleScope } from "../scope";
 import { Reference } from "../reference";
 import { IComment } from "./comment";
-import { ChildScopesTraverser } from "./childScopesTraverser";
+import { ChildScopesTraverser, RefsToModuleExtractor, PureDeclaratorTraverser } from "./childScopesTraverser";
 import { RootDeclaration, RootDeclarationType } from "./rootDeclaration";
 import rootDeclarationResolver from "./rootDeclarationResolver";
 
@@ -25,10 +25,7 @@ Object.defineProperty(Array.prototype, "flatMap", {
 });
 
 export class ModuleAnalyser {
-  public readonly childScopesTraverserMap: Map<
-    string,
-    ChildScopesTraverser
-  > = new Map();
+  public readonly extractorMap: Map<string, RefsToModuleExtractor> = new Map();
   public readonly internalUsedScopeIds: string[] = [];
 
   private comments: IComment[] = [];
@@ -72,7 +69,7 @@ export class ModuleAnalyser {
     this.scopeManager = scopeManager;
 
     this.resolvePureVariables();
-    this.analyzeImportExport();
+    this.findAllReferencesForModuleVariables();
   }
 
   /**
@@ -104,12 +101,12 @@ export class ModuleAnalyser {
       resolver(variable);
     }
 
-    // resolve export declaration
-    this.resolveExportDeclaration(declarations);
+    // handle export declaration
+    this.handleExportDefaultDeclaration(declarations);
     return declarations;
   }
 
-  private resolveExportDeclaration(declarations: RootDeclaration[]) {
+  private handleExportDefaultDeclaration(declarations: RootDeclaration[]) {
     const moduleScope = this.moduleScope;
     const { exportManager } = moduleScope;
 
@@ -144,7 +141,7 @@ export class ModuleAnalyser {
 
   }
 
-  private analyzeImportExport() {
+  private findAllReferencesForModuleVariables() {
     const moduleScope = this.moduleScope;
     const declarations = this.moduleScopeDeclarations;
 
@@ -152,12 +149,12 @@ export class ModuleAnalyser {
     const dependentScopes = declarations.flatMap(decl => decl.scopes);
     // deep scope analysis of all child scopes
     const visitedSet = new WeakSet();
-    this.handleDeclarations(declarations, visitedSet);
+    this.findAllReferencesToModuleScope(declarations, visitedSet);
 
     const independentScopes = moduleScope.childScopes.filter(
       item => !visitedSet.has(item),
     );
-    this.handleIndependentScopes(independentScopes);
+    this.traverseIndependentScopes(independentScopes);
 
     // find references that is not in export specifiers
     this.handleNotExportReferences(
@@ -177,13 +174,13 @@ export class ModuleAnalyser {
         moduleName: item.moduleName,
       }));
 
-    const visitedTraverserSet = new WeakSet<ChildScopesTraverser>();
+    const visitedExtractorSet = new WeakSet<RefsToModuleExtractor>();
 
-    const visitTraverser = (traverser: ChildScopesTraverser) => {
-      if (visitedTraverserSet.has(traverser)) return;
-      visitedTraverserSet.add(traverser);
+    const traverseExtractors = (extractor: RefsToModuleExtractor) => {
+      if (visitedExtractorSet.has(extractor)) return;
+      visitedExtractorSet.add(extractor);
 
-      traverser.refsToModule.forEach(([ref, info]) => {
+      extractor.refsToModule.forEach(([name, info]) => {
         if (info !== null) {
           resultList.push({
             sourceName: info.sourceName,
@@ -191,18 +188,16 @@ export class ModuleAnalyser {
           });
         }
 
-        if (this.childScopesTraverserMap.has(ref.identifier.name)) {
-          visitTraverser(
-            this.childScopesTraverserMap.get(ref.identifier.name)!,
-          );
+        if (this.extractorMap.has(name)) {
+          traverseExtractors(this.extractorMap.get(name)!);
         }
       });
     };
 
     // find all related scopes
-    for (const [funName, traverser] of this.childScopesTraverserMap) {
+    for (const [funName, traverser] of this.extractorMap) {
       if (moduleScopeIds.indexOf(funName) >= 0) {
-        visitTraverser(traverser);
+        traverseExtractors(traverser);
       }
     }
 
@@ -232,23 +227,41 @@ export class ModuleAnalyser {
       .map(info => info.localName || info.exportName);
   }
 
-  private handleDeclarations = (
+  /**
+   * traverse scopes
+   * find references to module scope
+   * and tag all relevant scopes
+   */
+  private findAllReferencesToModuleScope = (
     decls: RootDeclaration[],
     visitedSet: WeakSet<Scope>,
   ) =>
     decls.forEach(decl => {
       if (!decl.scopes) return;
-      decl.scopes.forEach(scope => {
-        visitedSet.add(scope);
-        const traverser = new ChildScopesTraverser(
-          scope,
-          this.moduleScope.importManager,
-        );
-        this.childScopesTraverserMap.set(decl.name, traverser);
-      });
+      switch (decl.targetType) {
+        case RootDeclarationType.PureVariable:
+          this.extractorMap.set(decl.name, new PureDeclaratorTraverser(
+            decl.node as ESTree.VariableDeclarator,
+            this.moduleScope.importManager,
+          ));
+          break;
+        default:
+          decl.scopes.forEach(scope => {
+            visitedSet.add(scope);
+            this.extractorMap.set(decl.name, new ChildScopesTraverser(
+              scope,
+              this.moduleScope.importManager,
+            ));
+          });
+          break;
+      }
     })
 
-  private handleIndependentScopes = (scopes: Scope[]) =>
+  /**
+   * traverse all independent scopes
+   * and tag all the import variables
+   */
+  private traverseIndependentScopes = (scopes: Scope[]) =>
     scopes.forEach(scope => {
       const traverser = new ChildScopesTraverser(
         scope,
@@ -269,10 +282,10 @@ export class ModuleAnalyser {
     moduleScopeRefs.forEach(ref => {
       const resolvedName = ref.resolved!.name;
       const importId = this.moduleScope.importManager.idMap.get(resolvedName);
-      const traverser = this.childScopesTraverserMap.get(resolvedName);
+      const extractor = this.extractorMap.get(resolvedName);
       if (importId) {
         importId.mustBeImported = true;
-      } else if (traverser && !ref.init) {
+      } else if (extractor && !ref.init) {
         this.internalUsedScopeIds.push(ref.identifier.name);
       }
     });

@@ -3,14 +3,46 @@ import {
   ImportIdentifierInfo,
 } from "../importManager";
 import { Scope } from "../scope";
-import { Reference } from "../reference";
+import * as estraverse from "estraverse";
+import * as ESTree from "estree";
 
-export type RefTuple = [Reference, ImportIdentifierInfo | null];
+export type NameInfoTuple = [string, ImportIdentifierInfo | null];
 
-export class ChildScopesTraverser {
-  public readonly refsToModule: RefTuple[] = [];
+export interface RefsToModuleExtractor {
+  refsToModule: NameInfoTuple[];
+}
 
-  constructor(
+export class PureDeclaratorTraverser implements RefsToModuleExtractor {
+  public readonly refsToModule: NameInfoTuple[] = [];
+
+  public constructor(
+    public readonly validatorDeclarator: ESTree.VariableDeclarator,
+    public readonly importManager: ImportManager,
+  ) {
+
+    estraverse.traverse(validatorDeclarator, {
+      enter: (node) => {
+        if (node.type === "Identifier") {
+          const idName = node.name;
+          let importNameInfo: ImportIdentifierInfo | null = null;
+          if (this.importManager.idMap.get(idName)) {
+            importNameInfo = this.importManager.idMap.get(
+              idName,
+            )!;
+          }
+          this.refsToModule.push([idName, importNameInfo]);
+        }
+      },
+    });
+
+  }
+
+}
+
+export class ChildScopesTraverser implements RefsToModuleExtractor {
+  public readonly refsToModule: NameInfoTuple[] = [];
+
+  public constructor(
     public readonly scope: Scope,
     public readonly importManager: ImportManager,
   ) {
@@ -31,7 +63,7 @@ export class ChildScopesTraverser {
             idName,
           )!;
         }
-        this.refsToModule.push([ref, importNameInfo]);
+        this.refsToModule.push([ref.identifier.name, importNameInfo]);
       }
     });
     scope.childScopes.forEach(this.traverse);

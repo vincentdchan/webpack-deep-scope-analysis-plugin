@@ -1,6 +1,8 @@
 
 declare module "estraverse" {
 
+  import * as ESTree from 'estree';
+
   export enum Syntax {
     AssignmentExpression = 'AssignmentExpression',
     AssignmentPattern = 'AssignmentPattern',
@@ -74,5 +76,15 @@ declare module "estraverse" {
     WithStatement = 'WithStatement',
     YieldExpression = 'YieldExpression'
   }
+
+  export type TraverseFunction = (node: ESTree.Node, parent: ESTree.Node) => void;
+
+  export interface TraverseOption {
+    enter?: TraverseFunction;
+    leave?: TraverseFunction;
+    fallback?: string;
+  }
+
+  function traverse(node: ESTree.Node, option: TraverseOption): void;
 
 }
