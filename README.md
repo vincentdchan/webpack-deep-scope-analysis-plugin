@@ -17,6 +17,11 @@ Install the plugin:
 $ yarn add webpack-deep-scope-plugin
 ```
 
+## Require
+
+- Node.js 8 \+
+- webpack 4.14.0 \+
+
 # Usage
 
 Enable the plugin in `webpack.config.js`:
