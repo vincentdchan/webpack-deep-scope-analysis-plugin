@@ -9,6 +9,7 @@ import { IComment } from "./comment";
 import { ChildScopesTraverser, RefsToModuleExtractor, PureDeclaratorTraverser } from "./childScopesTraverser";
 import { RootDeclaration, RootDeclarationType } from "./rootDeclaration";
 import rootDeclarationResolver from "./rootDeclarationResolver";
+import { ExportVariableType, LocalExportVariable } from "../exportManager";
 
 export interface Dictionary<T> {
   [index: string]: T;
@@ -89,7 +90,6 @@ export class ModuleAnalyser {
     const moduleScope = this.moduleScope;
     const declarations: RootDeclaration[] = [];
 
-    const { importManager, exportManager } = moduleScope;
     const pureCommentEndsSet = this.processComments();
     const resolver = rootDeclarationResolver(declarations, this.scopeManager!, pureCommentEndsSet);
 
@@ -253,9 +253,11 @@ export class ModuleAnalyser {
 
   private findExportLocalNames(usedExport: string[]) {
     return usedExport
-      .map(id => this.moduleScope.exportManager.localIdMap.get(id)!)
-      .filter(info => info.localName !== null || info.exportName === "default")
-      .map(info => info.localName || info.exportName);
+      .map(id => this.moduleScope.exportManager.exportsMap.get(id)!)
+      .filter(
+        info => info.type === ExportVariableType.Local && (info.localName !== null || info.exportName === "default")
+      )
+      .map((info: any) => info.localName || info.exportName);
   }
 
   /**

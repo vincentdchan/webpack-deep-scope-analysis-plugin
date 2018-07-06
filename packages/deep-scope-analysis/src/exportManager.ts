@@ -1,50 +1,54 @@
 import * as ESTree from "estree";
 import { ImportIdentifierInfo } from "./importManager";
 
-export class LocalExportIdentifier {
-  public dependentImportNames?: ImportIdentifierInfo[];
-
-  public constructor(
-    public readonly exportName: string,
-    public readonly localName: string | null,
-    public readonly node: ESTree.Node,
-  ) {}
-}
-
 export enum ExternalType {
-  Identifier = "Identifier",
-  All = "All",
+  Identifier = "identifier",
+  All = "all",
 }
 
-export class ExternalInfo {
-  public constructor(
-    public readonly moduleName: string,
-    public readonly moduleType: ExternalType,
-    public readonly names?: {
-      exportName: string;
-      sourceName: string;
-    },
-  ) {}
+export enum ExportVariableType {
+  Local = "local",
+  External = "external",
 }
+
+export interface LocalExportVariable {
+  type: ExportVariableType.Local,
+  exportName: string,
+  localName: string | null,
+  node: ESTree.Node,
+}
+
+export interface ExternalVariable {
+  type: ExportVariableType.External,
+  moduleName: string,
+  moduleType: ExternalType,
+  names?: {
+    exportName: string;
+    sourceName: string;
+  }
+}
+
+export type ExportVariable = LocalExportVariable | ExternalVariable;
 
 export class ExportManager {
-  public readonly localIdMap: Map<
-    string,
-    LocalExportIdentifier
-  > = new Map();
-  public readonly externalInfos: ExternalInfo[] = [];
+  public readonly exportsMap: Map<string, ExportVariable> = new Map();
+  public readonly localVariables: LocalExportVariable[] = [];
+  public readonly externalVariables: ExternalVariable[] = [];
   public exportDefaultDeclaration: ESTree.Node | null = null;
 
-  public addLocalExportIdentifier(
-    exportId: LocalExportIdentifier,
-  ) {
-    this.localIdMap.set(exportId.exportName, exportId);
-    if (exportId.exportName === "default") {
-      this.exportDefaultDeclaration = exportId.node as ESTree.ExportDefaultDeclaration;
+  public addLocalExportVariable(exportVar: LocalExportVariable) {
+    this.exportsMap.set(exportVar.exportName, exportVar);
+    this.localVariables.push(exportVar);
+    if (exportVar.exportName === "default") {
+      this.exportDefaultDeclaration = exportVar.node as ESTree.ExportDefaultDeclaration;
     }
   }
 
-  get localIds() {
-    return [...this.localIdMap.values()];
+  public addExternalVariable(external: ExternalVariable) {
+    this.externalVariables.push(external);
+    if (external.moduleType === ExternalType.Identifier) {
+        this.exportsMap.set(external.names!.exportName, external);
+    }
   }
+
 }

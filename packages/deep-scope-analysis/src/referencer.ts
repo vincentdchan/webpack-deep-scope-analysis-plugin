@@ -17,9 +17,7 @@ import {
   ImportType,
 } from "./importManager";
 import {
-  ExternalInfo,
-  LocalExportIdentifier,
-  ExternalType,
+  ExternalType, ExportVariableType, LocalExportVariable,
 } from "./exportManager";
 
 function traverseIdentifierInPattern(
@@ -815,64 +813,63 @@ export class Referencer extends esrecurse.Visitor {
       throw new Error("use export in a non module scope");
     }
 
-    let localExportIdentifier: LocalExportIdentifier;
+    let localExportVar: LocalExportVariable;
     if (node.declaration.type === "Identifier") {
-      localExportIdentifier = new LocalExportIdentifier(
-        "default",
-        node.declaration.name,
-        node.declaration,
-      );
+      localExportVar = {
+        type: ExportVariableType.Local,
+        exportName: "default",
+        localName: node.declaration.name,
+        node: node.declaration,
+      };
       this.isExportingFromLocal = true;
       this.visit(node.declaration);
       this.isExportingFromLocal = false;
     } else {
-      localExportIdentifier = new LocalExportIdentifier(
-        "default",
-        null,
-        node.declaration,
-      );
+      localExportVar = {
+        type: ExportVariableType.Local,
+        exportName: "default",
+        localName: null,
+        node: node.declaration,
+      };
       this.visit(node.declaration);
     }
 
-    currentScope.exportManager.addLocalExportIdentifier(localExportIdentifier);
+    currentScope.exportManager.addLocalExportVariable(localExportVar);
   }
 
   public ExportAllDeclaration(
     node: ESTree.ExportAllDeclaration,
   ) {
     const currentScope = this.currentScope as ModuleScope;
-    currentScope.exportManager.externalInfos.push(
-      new ExternalInfo(
-        node.source.value as string,
-        ExternalType.All,
-      ),
-    );
+    currentScope.exportManager.addExternalVariable({
+      type: ExportVariableType.External,
+      moduleName: node.source.value as string,
+      moduleType: ExternalType.All,
+    });
   }
 
   public ExportSpecifier(node: ESTree.ExportSpecifier) {
     const local = node.local;
     const currentScope = this.currentScope as ModuleScope;
     if (this.exportingSource) {
-      currentScope.exportManager.externalInfos.push(
-        new ExternalInfo(
-          this.exportingSource,
-          ExternalType.Identifier,
-          {
-            exportName: node.exported.name,
-            sourceName: node.local.name,
-          },
-        ),
-      );
+      currentScope.exportManager.addExternalVariable({
+        type: ExportVariableType.External,
+        moduleName: this.exportingSource,
+        moduleType: ExternalType.Identifier,
+        names: {
+          exportName: node.exported.name,
+          sourceName: node.local.name,
+        },
+      });
     } else {
       this.isExportingFromLocal = true;
       this.visit(local);
-      currentScope.exportManager.addLocalExportIdentifier(
-        new LocalExportIdentifier(
-          node.exported.name,
-          node.local.name,
-          node.local,
-        ),
-      );
+      currentScope.exportManager.addLocalExportVariable({
+        type: ExportVariableType.Local,
+        exportName: node.exported.name,
+        localName: node.local.name,
+        node: node.local,
+      });
       this.isExportingFromLocal = false;
     }
   }

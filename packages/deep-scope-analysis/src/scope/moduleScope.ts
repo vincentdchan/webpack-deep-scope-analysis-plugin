@@ -6,8 +6,7 @@ import { Reference } from "../reference";
 import * as ESTree from "estree";
 import { ImportManager } from "../importManager";
 import {
-  ExportManager,
-  LocalExportIdentifier,
+  ExportManager, ExportVariableType,
 } from "../exportManager";
 
 export class ModuleScope extends Scope {
@@ -29,13 +28,12 @@ export class ModuleScope extends Scope {
   ): Variable | null {
     const ancestor = super.__define(node, def);
     if (ancestor !== null && this.isExportingNamedDeclaration) {
-      this.exportManager.addLocalExportIdentifier(
-        new LocalExportIdentifier(
-          ancestor.name,
-          ancestor.name,
-          ancestor.defs[0].node,
-        ),
-      );
+      this.exportManager.addLocalExportVariable({
+        type: ExportVariableType.Local,
+        exportName: ancestor.name,
+        localName: ancestor.name,
+        node: ancestor.defs[0].node,
+      });
     }
     return ancestor;
   }
