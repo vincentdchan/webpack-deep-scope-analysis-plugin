@@ -1,1 +1,11 @@
-{}
+{
+  "./components/Button": [
+    "default"
+  ],
+  "./components/ButtonGroup": [
+    "default"
+  ],
+  "./theme": [
+    "themeNamespace"
+  ]
+}

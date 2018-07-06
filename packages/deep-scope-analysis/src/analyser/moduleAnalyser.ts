@@ -9,7 +9,7 @@ import { IComment } from "./comment";
 import { ChildScopesTraverser, RefsToModuleExtractor, PureDeclaratorTraverser } from "./childScopesTraverser";
 import { RootDeclaration, RootDeclarationType } from "./rootDeclaration";
 import rootDeclarationResolver from "./rootDeclarationResolver";
-import { ExportVariableType, LocalExportVariable } from "../exportManager";
+import { ExportVariableType, LocalExportVariable, ExternalType } from "../exportManager";
 
 export interface Dictionary<T> {
   [index: string]: T;
@@ -24,6 +24,11 @@ Object.defineProperty(Array.prototype, "flatMap", {
   },
   enumerable: false,
 });
+
+interface ResultType {
+  sourceName: string,
+  moduleName: string,
+}
 
 export class ModuleAnalyser {
   public readonly extractorMap: Map<string, RefsToModuleExtractor> = new Map();
@@ -193,17 +198,41 @@ export class ModuleAnalyser {
       }
     })
 
-  public generateExportInfo(usedExport: string[]) {
-    const moduleScopeIds = this.internalUsedScopeIds.concat(
-      this.findExportLocalNames(usedExport),
-    );
-    const importManager = this.moduleScope.importManager;
+  public generateExportInfo(usedExports: string[]) {
+    const { importManager, exportManager } = this.moduleScope;
+
     const resultList = importManager.ids
       .filter(item => item.mustBeImported)
       .map(item => ({
         sourceName: item.sourceName,
         moduleName: item.moduleName,
       }));
+
+    const moduleScopeIds = [...this.internalUsedScopeIds];
+    for (let i = 0; i < usedExports.length; i++) {
+      const usedExport = usedExports[i];
+      const exportVar = exportManager.exportsMap.get(usedExport);
+
+      if (typeof exportVar === 'undefined') {
+        throw new Error(`${usedExport} is not an export variable`);
+      }
+
+      switch(exportVar.type) {
+        case ExportVariableType.Local:
+          if (exportVar.localName !== null || exportVar.exportName === "default") {
+            moduleScopeIds.push(exportVar.localName || exportVar.exportName);
+          }
+          break;
+        case ExportVariableType.External:
+          if (exportVar.moduleType === ExternalType.Identifier) {
+            resultList.push({
+              sourceName: exportVar.names!.sourceName,
+              moduleName: exportVar.moduleName,
+            })
+          }
+          break;
+      }
+    }
 
     const visitedExtractorSet = new WeakSet<RefsToModuleExtractor>();
 
@@ -251,15 +280,6 @@ export class ModuleAnalyser {
     );
   }
 
-  private findExportLocalNames(usedExport: string[]) {
-    return usedExport
-      .map(id => this.moduleScope.exportManager.exportsMap.get(id)!)
-      .filter(
-        info => info.type === ExportVariableType.Local && (info.localName !== null || info.exportName === "default")
-      )
-      .map((info: any) => info.localName || info.exportName);
-  }
-
   /**
    * traverse all independent scopes
    * and tag all the import variables
@@ -296,17 +316,6 @@ export class ModuleAnalyser {
         this.internalUsedScopeIds.push(ref.identifier.name);
       }
     });
-  }
-
-  private findChildScopeOfModule(ref: Reference): Scope | null {
-    let scope = ref.from;
-    while (scope.upper !== null) {
-      if (scope.upper.type === "module") {
-        return scope;
-      }
-      scope = scope.upper;
-    }
-    return null;
   }
 
   /**
