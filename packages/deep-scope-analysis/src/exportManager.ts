@@ -12,20 +12,20 @@ export enum ExportVariableType {
 }
 
 export interface LocalExportVariable {
-  type: ExportVariableType.Local,
-  exportName: string,
-  localName: string | null,
-  node: ESTree.Node,
+  type: ExportVariableType.Local;
+  exportName: string;
+  localName: string | null;
+  node: ESTree.Node;
 }
 
 export interface ExternalVariable {
-  type: ExportVariableType.External,
-  moduleName: string,
-  moduleType: ExternalType,
+  type: ExportVariableType.External;
+  moduleName: string;
+  moduleType: ExternalType;
   names?: {
     exportName: string;
     sourceName: string;
-  }
+  };
 }
 
 export type ExportVariable = LocalExportVariable | ExternalVariable;

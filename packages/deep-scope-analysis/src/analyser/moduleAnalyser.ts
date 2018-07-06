@@ -26,8 +26,8 @@ Object.defineProperty(Array.prototype, "flatMap", {
 });
 
 interface ResultType {
-  sourceName: string,
-  moduleName: string,
+  sourceName: string;
+  moduleName: string;
 }
 
 export class ModuleAnalyser {
@@ -213,11 +213,11 @@ export class ModuleAnalyser {
       const usedExport = usedExports[i];
       const exportVar = exportManager.exportsMap.get(usedExport);
 
-      if (typeof exportVar === 'undefined') {
+      if (typeof exportVar === "undefined") {
         throw new Error(`${usedExport} is not an export variable`);
       }
 
-      switch(exportVar.type) {
+      switch (exportVar.type) {
         case ExportVariableType.Local:
           if (exportVar.localName !== null || exportVar.exportName === "default") {
             moduleScopeIds.push(exportVar.localName || exportVar.exportName);
@@ -228,7 +228,7 @@ export class ModuleAnalyser {
             resultList.push({
               sourceName: exportVar.names!.sourceName,
               moduleName: exportVar.moduleName,
-            })
+            });
           }
           break;
       }
