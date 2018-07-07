@@ -55,5 +55,8 @@
   ],
   "../styled/LoadingSpinner": [
     "default"
+  ],
+  "./CustomComponentProxy": [
+    "default"
   ]
 }

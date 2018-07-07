@@ -32,7 +32,7 @@ interface ResultType {
 
 export class ModuleAnalyser {
   public readonly extractorMap: Map<string, RefsToModuleExtractor> = new Map();
-  public readonly internalUsedScopeIds: string[] = [];
+  public readonly internalUsedScopeIds: Set<string> = new Set();
 
   private comments: IComment[] = [];
 
@@ -284,18 +284,21 @@ export class ModuleAnalyser {
    * traverse all independent scopes
    * and tag all the import variables
    */
-  private traverseIndependentScopes = (scopes: Scope[]) =>
-    scopes.forEach(scope => {
+  private traverseIndependentScopes(scopes: Scope[]) {
+    for (const scope of scopes) {
       const traverser = new ChildScopesTraverser(
         scope,
         this.moduleScope.importManager,
       );
       traverser.refsToModule.forEach(([ref, info]) => {
-        if (info !== null) {
+        if (this.extractorMap.has(ref)) {
+          this.internalUsedScopeIds.add(ref);
+        } else if (info !== null) {
           info.mustBeImported = true;
         }
       });
-    })
+    }
+  }
 
   private handleNotExportReferences = (
     refs: Reference[],
@@ -313,7 +316,7 @@ export class ModuleAnalyser {
       if (importId) {
         importId.mustBeImported = true;
       } else if (extractor && !ref.init) {
-        this.internalUsedScopeIds.push(ref.identifier.name);
+        this.internalUsedScopeIds.add(ref.identifier.name);
       }
     });
   }
