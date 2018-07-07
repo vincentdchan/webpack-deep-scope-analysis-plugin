@@ -107,7 +107,7 @@ class Importer extends esrecurse.Visitor {
     this.visitImport(local, node);
     const importId = new ImportIdentifierInfo(
       local.name,
-      local.name,
+      "default",
       this.declaration.source.value as string,
       ImportType.Default,
     );

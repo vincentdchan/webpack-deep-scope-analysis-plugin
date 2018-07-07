@@ -1,17 +1,17 @@
 {
   "./internal/_curry1": [
-    "_curry1"
+    "default"
   ],
   "./curryN": [
-    "curryN"
-  ],
-  "./max": [
-    "max"
-  ],
-  "./pluck": [
-    "pluck"
+    "default"
   ],
   "./reduce": [
-    "reduce"
+    "default"
+  ],
+  "./max": [
+    "default"
+  ],
+  "./pluck": [
+    "default"
   ]
 }
