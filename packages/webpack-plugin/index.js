@@ -1,12 +1,6 @@
 const assert = "assert";
 
-const {
-  ScopeManager,
-  Variable,
-  ModuleManager,
-  ModuleAnalyser,
-  Scope,
-} = require("webpack-deep-scope-analysis");
+const { ModuleAnalyser } = require("webpack-deep-scope-analysis");
 // const version = require("./package.json").version;
 
 const pluginName = "WebpackDeepScopeAnalysisPlugin";
@@ -27,7 +21,10 @@ class WebpackDeepScopeAnalysisPlugin {
           (depRef, dep, module) => {
             if (dep.type === "harmony import specifier") {
               const moduleScopeAnalyser = this.moduleMap.get(module.resource);
-              const { usedExports } = dep.originModule;
+              let { usedExports } = dep.originModule;
+
+              if (usedExports === false) usedExports = [];
+
               if (
                 usedExports &&
                 dep.id &&
