@@ -12,9 +12,11 @@
     "tslint": "tslint -c tslint.json 'src/**/*.ts'"
   },
   "dependencies": {
-    "estraverse": "^4.2.0",
+    "estraverse": "^4.2.0"
+  },
+  "peerDependencies": {
     "tslint": "^5.10.0",
-    "webpack": "^4.1.0",
+    "webpack": "^4.14.0",
     "webpack-cli": "^2.0.10"
   },
   "devDependencies": {
