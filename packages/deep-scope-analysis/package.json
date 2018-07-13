@@ -12,10 +12,8 @@
     "tslint": "tslint -c tslint.json 'src/**/*.ts'"
   },
   "dependencies": {
-    "estraverse": "^4.2.0",
-    "tslint": "^5.10.0",
-    "webpack": "^4.1.0",
-    "webpack-cli": "^2.0.10"
+    "esrecurse": "^4.2.1",
+    "estraverse": "^4.2.0"
   },
   "devDependencies": {
     "@types/estree": "^0.0.39",
@@ -25,6 +23,7 @@
     "chai": "^4.1.2",
     "chai-jest-diff": "^1.0.2",
     "mocha": "^5.1.1",
-    "typescript": "^2.7.2"
+    "typescript": "^2.7.2",
+    "tslint": "^5.10.0"
   }
 }
