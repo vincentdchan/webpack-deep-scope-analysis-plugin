@@ -30,14 +30,14 @@ class WebpackDeepScopeAnalysisPlugin {
               const { usedExports } = dep.originModule;
               if (
                 usedExports &&
-                dep._id &&
+                dep.id &&
                 !dep.namespaceObjectAsContext &&
                 Array.isArray(usedExports)
               ) {
                 const exportInfo = moduleScopeAnalyser.generateExportInfo(usedExports);
                 if (dep.request in exportInfo) {
                   const names = exportInfo[dep.request];
-                  if (names.indexOf(dep._id) >= 0) {
+                  if (names.indexOf(dep.id) >= 0) {
                     return depRef;
                   } else {
                     return null;
