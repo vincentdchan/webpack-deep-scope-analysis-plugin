@@ -2,8 +2,15 @@
   "name": "webpack-deep-scope-plugin",
   "version": "1.3.5",
   "main": "index.js",
-  "author": "Vincent Chan",
+  "author": "Vincent Chan <okcdz@diverse.space>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vincentdchan/webpack-deep-scope-analysis-plugin.git"
+  },
+  "files": [
+    "index.js"
+  ],
   "peerDependencies": {
     "webpack": "^4.14.0"
   },
