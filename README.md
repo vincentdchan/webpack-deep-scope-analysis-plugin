@@ -46,7 +46,7 @@ The plugin will analyze the scope and determine if the variables should be impor
 
 As you know, it's difficult for ECMAScript to analyze the side effects. Hence, `PURE` annotation is introduced, which is from [Uglify](https://github.com/mishoo/UglifyJS2):
 
-> A function call is marked as "pure" if a comment annotation /\*@__PURE__\*/ or /\*#__PURE__\*/ immediately precedes the call. For example: /\*@__PURE__\*/foo();
+> A function call is marked as "pure" if a comment annotation /\*@\_\_PURE\_\_\*/ or /\*#\_\_PURE\_\_\*/ immediately precedes the call. For example: /\*@\_\_PURE\_\_\*/foo();
 
 # About Escope
 
