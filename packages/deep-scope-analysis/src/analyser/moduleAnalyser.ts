@@ -209,7 +209,7 @@ export class ModuleAnalyser {
       const exportVar = exportManager.exportsMap.get(usedExport);
 
       if (typeof exportVar === "undefined") {
-        // FIX: export from anothe module
+        // FIX: export from another module
         // throw new Error(`${usedExport} is not an export variable`);
         continue;
       }
