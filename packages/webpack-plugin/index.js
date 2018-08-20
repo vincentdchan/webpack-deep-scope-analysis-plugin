@@ -1,5 +1,3 @@
-const assert = "assert";
-
 const { ModuleAnalyser } = require("webpack-deep-scope-analysis");
 // const version = require("./package.json").version;
 
@@ -14,7 +12,6 @@ class WebpackDeepScopeAnalysisPlugin {
     compiler.hooks.compilation.tap(
       pluginName,
       (compilation, { normalModuleFactory }) => {
-        const moduleAnalyser = new ModuleAnalyser();
 
         compilation.hooks.dependencyReference.tap(
           pluginName,
@@ -56,11 +53,8 @@ class WebpackDeepScopeAnalysisPlugin {
           }
 
           parser.hooks.program.tap(pluginName, (ast, comments) => {
-            // console.log(normalModuleFactory);
-            // if (this.moduleMap.has())
             const resourceName = parser.state.module.resource;
             if (!this.moduleMap.has(resourceName)) {
-              // console.log(resourceName);
               const analyser = new ModuleAnalyser(resourceName, parser.state.module);
               analyser.analyze(ast, {
                 comments,
