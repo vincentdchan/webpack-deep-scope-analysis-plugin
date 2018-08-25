@@ -111,7 +111,10 @@ export class ModuleAnalyser {
       ["FunctionDeclaration", "ArrowFunctionExpression"].indexOf(node.type) >= 0;
 
     if (exportManager.exportDefaultDeclaration) {
-      if (isFunction(exportManager.exportDefaultDeclaration)) {
+      if (
+        isFunction(exportManager.exportDefaultDeclaration) ||
+        exportManager.exportDefaultDeclaration.type === "ClassDeclaration"
+      ) {
         const declaration = exportManager.exportDefaultDeclaration;
         declarations.push(
           new RootDeclaration(
