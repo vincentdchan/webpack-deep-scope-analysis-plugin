@@ -1,6 +1,6 @@
 {
   "name": "webpack-deep-scope-analysis",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "author": "Vincent Chan <okcdz@diverse.space>",
   "license": "MIT",
   "main": "lib/index.js",
