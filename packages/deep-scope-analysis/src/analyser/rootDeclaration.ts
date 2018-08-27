@@ -4,7 +4,7 @@ import { Scope } from "../scope";
 export enum RootDeclarationType {
   Function = "function",
   Class = "class",
-  PureVariable = "PureVariable",
+  PureVariable = "pure-variable",
 }
 
 export class RootDeclaration {
