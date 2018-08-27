@@ -49,6 +49,7 @@ export class VariableVirtualScope implements VirtualScope {
     scopeManager: ScopeManager,
     virtualScopeMap: WeakMap<Variable, VirtualScope>,
   ) {
+    if (!this.isChildrenDependent) return;
     switch (this.contentType) {
       case VScopeContentType.ClassDeclaration:
       case VScopeContentType.FunctionDeclaration:
