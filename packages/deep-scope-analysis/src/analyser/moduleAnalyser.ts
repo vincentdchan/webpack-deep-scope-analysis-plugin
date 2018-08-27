@@ -6,9 +6,7 @@ import * as ESTree from "estree";
 import { Scope, ModuleScope } from "../scope";
 import { Reference } from "../reference";
 import { IComment } from "./comment";
-import { ChildScopesTraverser, RefsToModuleExtractor, PureDeclaratorTraverser } from "./childScopesTraverser";
-import { RootDeclaration, RootDeclarationType } from "./rootDeclaration";
-import rootDeclarationResolver from "./rootDeclarationResolver";
+import { ChildScopesTraverser, RefsToModuleExtractor } from "./childScopesTraverser";
 import { ExportVariableType, ExternalType } from "../exportManager";
 import { Variable } from "../variable";
 import {
@@ -205,23 +203,6 @@ export class ModuleAnalyser {
     return pureCommentEndsSet;
   }
 
-  private get moduleScopeDeclarations() {
-    const moduleScope = this.moduleScope;
-    const declarations: RootDeclaration[] = [];
-
-    const pureCommentEndsSet = this.processComments();
-    const resolver = rootDeclarationResolver(declarations, this.scopeManager!, pureCommentEndsSet);
-
-    for (let i = 0; i < moduleScope.variables.length; i++) {
-      const variable = moduleScope.variables[i];
-      resolver(variable);
-    }
-
-    // handle export declaration
-    // this.handleExportDefaultDeclaration(declarations);
-    return declarations;
-  }
-
   private handleExportDefaultDeclaration() {
     const moduleScope = this.moduleScope;
     const { exportManager } = moduleScope;
@@ -244,15 +225,12 @@ export class ModuleAnalyser {
         case "Identifier":
           vsType = VScopeContentType.Reference;
           break;
-      }
-      if (typeof vsType! === "undefined") {
-        throw new Error(
-          `Unexpected export default type: ${exportManager.exportDefaultDeclaration.type}`,
-        );
+        default:
+          return;
       }
       this.virtualScopes.push(
         new ExportDefaultVirtualScope(
-          vsType!,
+          vsType,
           exportManager.exportDefaultDeclaration,
           true,
         ),
@@ -260,58 +238,6 @@ export class ModuleAnalyser {
     }
 
   }
-
-  private findAllReferencesForModuleVariables() {
-    const moduleScope = this.moduleScope;
-    const declarations = this.moduleScopeDeclarations;
-
-    // deep scope analysis of all child scopes
-    const visitedSet = new WeakSet();
-    const pureIdentifiersSet: WeakSet<ESTree.Identifier> = new WeakSet();
-    this.findAllReferencesToModuleScope(declarations, pureIdentifiersSet, visitedSet);
-
-    const independentScopes = moduleScope.childScopes.filter(
-      item => !visitedSet.has(item),
-    );
-    this.traverseIndependentScopes(independentScopes);
-
-    // find references that is not in export specifiers
-    this.handleNotExportReferences(moduleScope.references.filter(ref => !ref.isExport));
-  }
-
-  /**
-   * traverse scopes
-   * find references to module scope
-   * and tag all relevant scopes
-   */
-  private findAllReferencesToModuleScope = (
-    decls: RootDeclaration[],
-    pureIdentifiersSet: WeakSet<ESTree.Identifier>,
-    visitedSet: WeakSet<Scope>,
-  ) =>
-    decls.forEach(decl => {
-      if (!decl.scopes) return;
-      switch (decl.targetType) {
-        case RootDeclarationType.PureVariable:
-          const traverser = new PureDeclaratorTraverser(
-            decl.node as ESTree.VariableDeclarator,
-            this.moduleScope,
-          );
-          traverser.ids.forEach(id => pureIdentifiersSet.add(id));
-          traverser.relevantScopes.forEach(scope => visitedSet.add(scope));
-          this.extractorMap.set(decl.name, traverser);
-          break;
-        default:
-          decl.scopes.forEach(scope => {
-            visitedSet.add(scope);
-            this.extractorMap.set(decl.name, new ChildScopesTraverser(
-              scope,
-              this.moduleScope.importManager,
-            ));
-          });
-          break;
-      }
-    })
 
   public generateExportInfo(usedExports: string[]) {
     const { importManager, exportManager } = this.moduleScope;
