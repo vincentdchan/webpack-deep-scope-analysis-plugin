@@ -33,10 +33,10 @@ Object.defineProperty(Array.prototype, "flatMap", {
 
 export class ModuleAnalyser {
   public readonly extractorMap: Map<string, RefsToModuleExtractor> = new Map();
-  public readonly internalUsedScopeIds: Set<string> = new Set();
 
   public readonly virtualScopeMap: WeakMap<Variable, VirtualScope> = new WeakMap();
   public readonly virtualScopes: VirtualScope[] = [];
+  public readonly initVirtualScopes: VirtualScope[] = [];
 
   private comments: IComment[] = [];
 
@@ -78,7 +78,6 @@ export class ModuleAnalyser {
     );
     this.scopeManager = scopeManager;
 
-    // this.findAllReferencesForModuleVariables();
     const pureCommentEndsSet = this.processComments();
     const { moduleScope } = this;
     moduleScope.variables.forEach(variable => {
@@ -249,7 +248,7 @@ export class ModuleAnalyser {
         moduleName: item.moduleName,
       }));
 
-    const moduleScopeIds = [...this.internalUsedScopeIds];
+    const moduleScopeIds = [];
     for (let i = 0; i < usedExports.length; i++) {
       const usedExport = usedExports[i];
       const exportVar = exportManager.exportsMap.get(usedExport);
@@ -299,7 +298,18 @@ export class ModuleAnalyser {
         traverseVirtualScope(child);
       }
     };
-    this.virtualScopes.forEach(traverseVirtualScope);
+    this.initVirtualScopes.forEach(traverseVirtualScope);
+    moduleScopeIds.forEach(id => {
+      if (id === "default") {
+        // FIXME: improve efficiency
+        const defaultVs = this.virtualScopes.filter(vs => vs.type === VirtualScopeType.Default);
+        defaultVs.forEach(vs => traverseVirtualScope(vs));
+      } else {
+        const variable = this.moduleScope.set.get(id)!;
+        const vs = this.virtualScopeMap.get(variable)!;
+        traverseVirtualScope(vs);
+      }
+    });
 
     const resultMap: Dictionary<Set<string>> = {};
 
@@ -331,9 +341,10 @@ export class ModuleAnalyser {
         this.moduleScope.importManager,
       );
       traverser.refsToModule.forEach(([ref, info]) => {
-        if (this.extractorMap.has(ref)) {
-          this.internalUsedScopeIds.add(ref);
-        } else if (info !== null) {
+        const variable = this.moduleScope.set.get(ref)!;
+        const vs = this.virtualScopeMap.get(variable)!;
+        this.initVirtualScopes.push(vs);
+        if (info !== null) {
           info.mustBeImported = true;
         }
       });
@@ -361,13 +372,10 @@ export class ModuleAnalyser {
 
     moduleScopeRefs.forEach(ref => {
       if (pureIdentifiersSet.has(ref.identifier)) return;
-      const resolvedName = ref.resolved!.name;
-      const importId = this.moduleScope.importManager.idMap.get(resolvedName);
-      const extractor = this.extractorMap.get(resolvedName);
-      if (importId) {
-        importId.mustBeImported = true;
-      } else if (extractor && !ref.init) {
-        this.internalUsedScopeIds.add(ref.identifier.name);
+      const resolvedName = ref.resolved!;
+      const vs = this.virtualScopeMap.get(resolvedName)!;
+      if (!ref.init) {
+        this.initVirtualScopes.push(vs);
       }
     });
   }
