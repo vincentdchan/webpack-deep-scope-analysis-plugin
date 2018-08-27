@@ -14,12 +14,18 @@ import * as estraverse from "estraverse";
 export class VariableVirtualScope implements VirtualScope {
 
   public readonly children: VirtualScope[] = [];
+  public readonly pureRange: [number, number] | undefined;
 
   public constructor(
     public readonly contentType: VScopeContentType,
     public readonly variable: Variable,
     public isChildrenDependent: boolean = true,
-  ) {}
+  ) {
+    if (contentType === VScopeContentType.PureFunctionCall) {
+      const { declarator } = this;
+      this.pureRange = [declarator.start, declarator.end];
+    }
+  }
 
   public get type() {
     return VirtualScopeType.Variable;
@@ -31,7 +37,7 @@ export class VariableVirtualScope implements VirtualScope {
     if (typeof node === "undefined") {
       throw new TypeError("node.init is undefined");
     }
-    return node.init;
+    return node;
   }
 
   public get isImport() {
@@ -63,6 +69,7 @@ export class VariableVirtualScope implements VirtualScope {
         break;
       case VScopeContentType.PureFunctionCall:
         this.traversePureDeclarator(
+          visitedSet,
           this.declarator,
           scopeManager,
           virtualScopeMap,
@@ -150,12 +157,12 @@ export class VariableVirtualScope implements VirtualScope {
   }
 
   private traversePureDeclarator(
+    visitedSet: WeakSet<Scope>,
     validatorDeclarator: ESTree.VariableDeclarator,
     scopeManager: ScopeManager,
     virtualScopeMap: WeakMap<Variable, VirtualScope>,
   ) {
     const moduleScope = this.getModuleScope(scopeManager);
-    const relevantScopes: Scope[] = [];
 
     const nodeContains = (node1: any, node2: any) => {
       return node2.start >= node1.start && node2.end <= node1.end;
@@ -165,7 +172,7 @@ export class VariableVirtualScope implements VirtualScope {
     moduleScope.childScopes.forEach(scope => {
       const block = scope.block as any;
       if (nodeContains(validatorDeclarator, block)) {
-        relevantScopes.push(scope);
+        visitedSet.add(scope);
       }
     });
 
@@ -177,7 +184,6 @@ export class VariableVirtualScope implements VirtualScope {
         }
       },
     });
-
   }
 
   private addToVs(
@@ -185,9 +191,11 @@ export class VariableVirtualScope implements VirtualScope {
     moduleScope: ModuleScope,
     virtualScopeMap: WeakMap<Variable, VirtualScope>,
   ) {
-    const refVar = moduleScope.set.get(idName)!;
-    const virtualScope = virtualScopeMap.get(refVar)!;
-    this.children.push(virtualScope);
+    const refVar = moduleScope.set.get(idName);
+    if (typeof refVar !== "undefined") {
+      const virtualScope = virtualScopeMap.get(refVar)!;
+      this.children.push(virtualScope);
+    }
   }
 
 }

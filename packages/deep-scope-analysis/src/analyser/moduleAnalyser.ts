@@ -21,6 +21,11 @@ export interface Dictionary<T> {
   [index: string]: T;
 }
 
+export interface ExportInfo {
+  sourceName: string;
+  moduleName: string;
+}
+
 // flatMap polyfill
 Object.defineProperty(Array.prototype, "flatMap", {
   value(this: any[], f: any) {
@@ -239,14 +244,9 @@ export class ModuleAnalyser {
   }
 
   public generateExportInfo(usedExports: string[]) {
-    const { importManager, exportManager } = this.moduleScope;
+    const { exportManager } = this.moduleScope;
 
-    const resultList = importManager.ids
-      .filter(item => item.mustBeImported)
-      .map(item => ({
-        sourceName: item.sourceName,
-        moduleName: item.moduleName,
-      }));
+    const resultList: ExportInfo[] = [];
 
     const moduleScopeIds = [];
     for (let i = 0; i < usedExports.length; i++) {
@@ -356,22 +356,26 @@ export class ModuleAnalyser {
       ref => ref.resolved && ref.resolved.scope.type === "module",
     );
 
-    const pureIdentifiersSet: WeakSet<ESTree.Identifier> = new WeakSet();
-    this.virtualScopes.forEach(vs => {
-      if (
-        vs.type === VirtualScopeType.Variable &&
-        vs.contentType === VScopeContentType.PureFunctionCall
-      ) {
-        const def = (vs as VariableVirtualScope).variable.defs[0];
-        const node = def.node as ESTree.VariableDeclarator;
-        if (node.id.type === "Identifier") {
-          pureIdentifiersSet.add(node.id);
-        }
-      }
-    });
+    const pureVScopes = this.virtualScopes.filter(
+      vs => vs.contentType === VScopeContentType.PureFunctionCall,
+    );
+
+    /**
+     * judge if node is in the range
+     */
+    const nodeContains = (node: any, [start, end]: [number, number]) => {
+      return node.start >= start && node.end <= end;
+    };
 
     moduleScopeRefs.forEach(ref => {
-      if (pureIdentifiersSet.has(ref.identifier)) return;
+      for (const vs of pureVScopes) {
+        if (vs instanceof VariableVirtualScope) {
+          const range = vs.pureRange!;
+          if (nodeContains(ref.identifier, range)) {
+            return;
+          }
+        }
+      }
       const resolvedName = ref.resolved!;
       const vs = this.virtualScopeMap.get(resolvedName)!;
       if (!ref.init) {
