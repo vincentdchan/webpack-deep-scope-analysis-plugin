@@ -1,6 +1,6 @@
 {
   "name": "default",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "main": "index.js",
   "license": "MIT",
   "sideEffects": false,
@@ -10,6 +10,6 @@
     "ramda": "^0.25.0",
     "webpack": "^4.10.1",
     "webpack-cli": "^2.1.4",
-    "webpack-deep-scope-plugin": "^1.5.0"
+    "webpack-deep-scope-plugin": "^1.5.1"
   }
 }
