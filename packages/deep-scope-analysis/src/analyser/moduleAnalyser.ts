@@ -10,8 +10,14 @@ import { ChildScopesTraverser, RefsToModuleExtractor, PureDeclaratorTraverser } 
 import { RootDeclaration, RootDeclarationType } from "./rootDeclaration";
 import rootDeclarationResolver from "./rootDeclarationResolver";
 import { ExportVariableType, ExternalType } from "../exportManager";
-import { Variable, VariableType } from "../variable";
-import { VirtualScope, VirtualScopeType } from "./virtualScope";
+import { Variable } from "../variable";
+import {
+  VirtualScope,
+  VScopeContentType,
+  VariableVirtualScope,
+  ExportDefaultVirtualScope,
+  VirtualScopeType,
+} from "./virtualScope";
 
 export interface Dictionary<T> {
   [index: string]: T;
@@ -81,22 +87,22 @@ export class ModuleAnalyser {
       let virtualScope: VirtualScope;
 
       if (moduleScope.importManager.idMap.get(variable.name)) {
-        virtualScope = new VirtualScope(
-          VirtualScopeType.Import,
+        virtualScope = new VariableVirtualScope(
+          VScopeContentType.Import,
           variable,
         );
       } else {
         const def = variable.defs[0];
         switch (def.node.type) {
           case "FunctionDeclaration":
-            virtualScope = new VirtualScope(
-              VirtualScopeType.FunctionDeclaration,
+            virtualScope = new VariableVirtualScope(
+              VScopeContentType.FunctionDeclaration,
               variable,
             );
             break;
           case "ClassDeclaration":
-            virtualScope = new VirtualScope(
-              VirtualScopeType.ClassDeclaration,
+            virtualScope = new VariableVirtualScope(
+              VScopeContentType.ClassDeclaration,
               variable,
             );
             break;
@@ -119,42 +125,40 @@ export class ModuleAnalyser {
                 }
               }
 
-              let scopeType: VirtualScopeType;
+              let scopeType = VScopeContentType.Undefined;
               switch (init.type) {
                 case "ClassExpression":
-                  scopeType = VirtualScopeType.ClassExpression;
+                  scopeType = VScopeContentType.ClassExpression;
                   break;
                 case "FunctionExpression":
-                  scopeType = VirtualScopeType.FunctionExpression;
+                  scopeType = VScopeContentType.FunctionExpression;
                   break;
                 case "ArrowFunctionExpression":
-                  scopeType = VirtualScopeType.ArrowFunction;
+                  scopeType = VScopeContentType.ArrowFunction;
                   break;
                 case "CallExpression":
                   if (pureCommentEndsSet.has(init.range![0])) {
-                    scopeType = VirtualScopeType.PureFunctionCall;
+                    scopeType = VScopeContentType.PureFunctionCall;
                   } else {
-                    scopeType = VirtualScopeType.NormalFunctionCall;
+                    scopeType = VScopeContentType.NormalFunctionCall;
                   }
-                default:
-                  scopeType = VirtualScopeType.Expression;
               }
-              virtualScope = new VirtualScope(
+              virtualScope = new VariableVirtualScope(
                 scopeType,
                 variable,
                 isChildrenDependent,
               );
             } else {
-              virtualScope = new VirtualScope(
-                VirtualScopeType.Undefined,
+              virtualScope = new VariableVirtualScope(
+                VScopeContentType.Undefined,
                 variable,
                 false,
               );
             }
             break;
           default:
-            virtualScope = new VirtualScope(
-              VirtualScopeType.Undefined,
+            virtualScope = new VariableVirtualScope(
+              VScopeContentType.Undefined,
               variable,
               false,
             );
@@ -165,6 +169,8 @@ export class ModuleAnalyser {
     });
 
     const visitedSet: WeakSet<Scope> = new WeakSet();
+
+    this.handleExportDefaultDeclaration();
 
     this.virtualScopes.forEach(
       vs => vs.findAllReferencesToVirtualScope(
@@ -212,44 +218,45 @@ export class ModuleAnalyser {
     }
 
     // handle export declaration
-    this.handleExportDefaultDeclaration(declarations);
+    // this.handleExportDefaultDeclaration(declarations);
     return declarations;
   }
 
-  private handleExportDefaultDeclaration(declarations: RootDeclaration[]) {
+  private handleExportDefaultDeclaration() {
     const moduleScope = this.moduleScope;
     const { exportManager } = moduleScope;
 
-    const isFunction = (node: ESTree.Node) =>
-      ["FunctionDeclaration", "ArrowFunctionExpression"].indexOf(node.type) >= 0;
-
     if (exportManager.exportDefaultDeclaration) {
-      if (
-        isFunction(exportManager.exportDefaultDeclaration) ||
-        exportManager.exportDefaultDeclaration.type === "ClassDeclaration"
-      ) {
-        const declaration = exportManager.exportDefaultDeclaration;
-        declarations.push(
-          new RootDeclaration(
-            RootDeclarationType.Function,
-            "default",
-            declaration,
-            this.scopeManager!.__nodeToScope.get(declaration)!,
-          ),
-        );
-      } else if (exportManager.exportDefaultDeclaration.type === "Identifier") {
-        const id = exportManager.exportDefaultDeclaration as ESTree.Identifier;
-        const idName = id.name;
-        const variable = moduleScope.set.get(idName)!;
-        declarations.push(
-          new RootDeclaration(
-            RootDeclarationType.Function,
-            "default",
-            id,
-            this.scopeManager!.__nodeToScope.get(variable.defs[0].node)!,
-          ),
+      let vsType: VScopeContentType;
+      switch (exportManager.exportDefaultDeclaration.type) {
+        case "FunctionDeclaration":
+          vsType = VScopeContentType.FunctionDeclaration;
+          break;
+        case "ArrowFunctionExpression":
+          vsType = VScopeContentType.ArrowFunction;
+          break;
+        case "ClassDeclaration":
+          vsType = VScopeContentType.ClassDeclaration;
+          break;
+        case "ClassExpression":
+          vsType = VScopeContentType.ClassExpression;
+          break;
+        case "Identifier":
+          vsType = VScopeContentType.Reference;
+          break;
+      }
+      if (typeof vsType! === "undefined") {
+        throw new Error(
+          `Unexpected export default type: ${exportManager.exportDefaultDeclaration.type}`,
         );
       }
+      this.virtualScopes.push(
+        new ExportDefaultVirtualScope(
+          vsType!,
+          exportManager.exportDefaultDeclaration,
+          true,
+        ),
+      );
     }
 
   }
@@ -350,13 +357,16 @@ export class ModuleAnalyser {
       if (visitedVScope.has(vs)) return;
       visitedVScope.add(vs);
 
-      if (vs.type === VirtualScopeType.Import) {
-        const name = vs.variable.name;
-        const importInfo = this.moduleScope.importManager.idMap.get(name)!;
-        resultList.push({
-          sourceName: importInfo.sourceName,
-          moduleName: importInfo.moduleName,
-        });
+      if (vs.type === VirtualScopeType.Variable) {
+        const varVScope = vs as VariableVirtualScope;
+        if (vs.contentType === VScopeContentType.Import) {
+          const name = varVScope.variable.name;
+          const importInfo = this.moduleScope.importManager.idMap.get(name)!;
+          resultList.push({
+            sourceName: importInfo.sourceName,
+            moduleName: importInfo.moduleName,
+          });
+        }
       }
 
       for (const child of vs.children) {
@@ -411,8 +421,11 @@ export class ModuleAnalyser {
 
     const pureIdentifiersSet: WeakSet<ESTree.Identifier> = new WeakSet();
     this.virtualScopes.forEach(vs => {
-      if (vs.type === VirtualScopeType.PureFunctionCall) {
-        const def = vs.variable.defs[0];
+      if (
+        vs.type === VirtualScopeType.Variable &&
+        vs.contentType === VScopeContentType.PureFunctionCall
+      ) {
+        const def = (vs as VariableVirtualScope).variable.defs[0];
         const node = def.node as ESTree.VariableDeclarator;
         if (node.id.type === "Identifier") {
           pureIdentifiersSet.add(node.id);

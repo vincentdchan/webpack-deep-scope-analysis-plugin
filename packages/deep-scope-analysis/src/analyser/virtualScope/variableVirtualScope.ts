@@ -1,23 +1,7 @@
-import { Variable } from "../variable";
-import { ScopeManager } from "../scopeManager";
-import { Scope, ModuleScope } from "..";
-import { ImportIdentifierInfo } from "../importManager";
-import * as estraverse from "estraverse";
+import { VirtualScope, VScopeContentType, VirtualScopeType } from ".";
+import { Variable, Scope, ScopeManager, ModuleScope } from "../..";
 import * as ESTree from "estree";
-// import { Scope } from "../scope";
-
-export enum VirtualScopeType {
-  Import = "import",
-  Expression = "expression",
-  ArrowFunction = "arrow-function",
-  ClassExpression = "class-expression",
-  ClassDeclaration = "class-declaration",
-  PureFunctionCall = "pure-function-call",
-  NormalFunctionCall = "normal-function-call",
-  FunctionExpression = "function-expression",
-  FunctionDeclaration = "function-declaration",
-  Undefined = "undefined",
-}
+import * as estraverse from "estraverse";
 
 /**
  * Every variable belongs to a module have
@@ -27,18 +11,19 @@ export enum VirtualScopeType {
  *
  * It can find all references to imports and other VirtualScopes
  */
-export class VirtualScope {
+export class VariableVirtualScope implements VirtualScope {
 
   public readonly children: VirtualScope[] = [];
 
   public constructor(
-    public readonly type: VirtualScopeType,
+    public readonly contentType: VScopeContentType,
     public readonly variable: Variable,
-    /**
-     * which mean the whether the children is included is dependent
-     */
     public isChildrenDependent: boolean = true,
   ) {}
+
+  public get type() {
+    return VirtualScopeType.Variable;
+  }
 
   public get declarator() {
     const def = this.variable.defs[0];
@@ -50,7 +35,7 @@ export class VirtualScope {
   }
 
   public get isImport() {
-    return this.type === VirtualScopeType.Import;
+    return this.contentType === VScopeContentType.Import;
   }
 
   public findAllReferencesToVirtualScope(
@@ -58,36 +43,34 @@ export class VirtualScope {
     scopeManager: ScopeManager,
     virtualScopeMap: WeakMap<Variable, VirtualScope>,
   ) {
-    switch (this.type) {
-      case VirtualScopeType.ClassDeclaration:
-      case VirtualScopeType.FunctionDeclaration:
+    switch (this.contentType) {
+      case VScopeContentType.ClassDeclaration:
+      case VScopeContentType.FunctionDeclaration:
         this.traverseDeclarationScope(
           visitedSet,
           scopeManager,
           virtualScopeMap,
         );
         break;
-      case VirtualScopeType.ArrowFunction:
-      case VirtualScopeType.FunctionExpression:
-      case VirtualScopeType.ClassExpression:
+      case VScopeContentType.ArrowFunction:
+      case VScopeContentType.FunctionExpression:
+      case VScopeContentType.ClassExpression:
         this.traverseExpressionScope(
           visitedSet,
           scopeManager,
           virtualScopeMap,
         );
         break;
-      case VirtualScopeType.PureFunctionCall:
+      case VScopeContentType.PureFunctionCall:
         this.traversePureDeclarator(
           this.declarator,
           scopeManager,
           virtualScopeMap,
         );
         break;
-      case VirtualScopeType.Expression:
+      case VScopeContentType.NormalFunctionCall:
         break;
-      case VirtualScopeType.NormalFunctionCall:
-        break;
-      case VirtualScopeType.Undefined:
+      case VScopeContentType.Undefined:
         break;
     }
   }
@@ -156,7 +139,7 @@ export class VirtualScope {
             ref.resolved.scope.type === "module"
           ) {
             const idName = ref.identifier.name;
-            this.addToVsOrImport(idName, moduleScope, virtualScopeMap);
+            this.addToVs(idName, moduleScope, virtualScopeMap);
           }
         });
         scope.childScopes.forEach(traverse);
@@ -190,14 +173,14 @@ export class VirtualScope {
       enter: (node) => {
         if (node.type === "Identifier") {
           const idName = node.name;
-          this.addToVsOrImport(idName, moduleScope, virtualScopeMap);
+          this.addToVs(idName, moduleScope, virtualScopeMap);
         }
       },
     });
 
   }
 
-  private addToVsOrImport(
+  private addToVs(
     idName: string,
     moduleScope: ModuleScope,
     virtualScopeMap: WeakMap<Variable, VirtualScope>,
