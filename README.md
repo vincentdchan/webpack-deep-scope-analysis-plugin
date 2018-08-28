@@ -55,6 +55,15 @@ As you know, it's difficult for ECMAScript to analyze the side effects. Hence, `
 
 > A function call is marked as "pure" if a comment annotation /\*@\_\_PURE\_\_\*/ or /\*#\_\_PURE\_\_\*/ immediately precedes the call. For example: /\*@\_\_PURE\_\_\*/foo();
 
+# Contributing
+
+Use `lerna` to build and test:
+```sh
+$ lerna run build
+$ lerna run tslint
+$ lerna run test
+```
+
 # About Escope
 
 Now the `src/` includes a Typescript version of [escope](https://github.com/estools/escope),

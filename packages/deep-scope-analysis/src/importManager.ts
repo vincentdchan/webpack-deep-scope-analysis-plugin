@@ -5,8 +5,6 @@ export enum ImportType {
 }
 
 export class ImportIdentifierInfo {
-  public mustBeImported: boolean = false;
-
   constructor(
     public readonly localName: string,
     public readonly sourceName: string,

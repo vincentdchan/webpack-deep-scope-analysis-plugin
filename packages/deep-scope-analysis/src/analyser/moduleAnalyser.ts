@@ -336,17 +336,11 @@ export class ModuleAnalyser {
    */
   private traverseIndependentScopes(scopes: Scope[]) {
     for (const scope of scopes) {
-      const traverser = new ChildScopesTraverser(
-        scope,
-        this.moduleScope.importManager,
-      );
-      traverser.refsToModule.forEach(([ref, info]) => {
+      const traverser = new ChildScopesTraverser(scope);
+      traverser.refsToModule.forEach(ref => {
         const variable = this.moduleScope.set.get(ref)!;
         const vs = this.virtualScopeMap.get(variable)!;
         this.initVirtualScopes.push(vs);
-        if (info !== null) {
-          info.mustBeImported = true;
-        }
       });
     }
   }

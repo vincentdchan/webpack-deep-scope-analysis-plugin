@@ -6,23 +6,23 @@ import { Scope, ModuleScope } from "../scope";
 import * as estraverse from "estraverse";
 import * as ESTree from "estree";
 
-export type NameInfoTuple = [string, ImportIdentifierInfo | null];
-
 export interface RefsToModuleExtractor {
-  refsToModule: NameInfoTuple[];
+  refsToModule: string[];
 }
 
+/**
+ * Find the scopes within the pure declarator
+ * and the references to the module scope
+ */
 export class PureDeclaratorTraverser implements RefsToModuleExtractor {
-  public readonly refsToModule: NameInfoTuple[] = [];
+  public readonly refsToModule: string[] = [];
   public readonly relevantScopes: Scope[] = [];
-  public readonly importManager: ImportManager;
   public readonly ids: ESTree.Identifier[] = [];
 
   public constructor(
     public readonly validatorDeclarator: ESTree.VariableDeclarator,
     public readonly moduleScope: ModuleScope,
   ) {
-    this.importManager = moduleScope.importManager;
 
     // FIXME: improve efficiency
     moduleScope.childScopes.forEach(scope => {
@@ -37,13 +37,7 @@ export class PureDeclaratorTraverser implements RefsToModuleExtractor {
         if (node.type === "Identifier") {
           this.ids.push(node);
           const idName = node.name;
-          let importNameInfo: ImportIdentifierInfo | null = null;
-          if (this.importManager.idMap.get(idName)) {
-            importNameInfo = this.importManager.idMap.get(
-              idName,
-            )!;
-          }
-          this.refsToModule.push([idName, importNameInfo]);
+          this.refsToModule.push(idName);
         }
       },
     });
@@ -56,12 +50,16 @@ export class PureDeclaratorTraverser implements RefsToModuleExtractor {
 
 }
 
+/**
+ * The traverser traverses all the scope
+ * and all the children scopes to find
+ * the references to module scope
+ */
 export class ChildScopesTraverser implements RefsToModuleExtractor {
-  public readonly refsToModule: NameInfoTuple[] = [];
+  public readonly refsToModule: string[] = [];
 
   public constructor(
     public readonly scope: Scope,
-    public readonly importManager: ImportManager,
   ) {
     this.traverse(scope);
   }
@@ -73,14 +71,7 @@ export class ChildScopesTraverser implements RefsToModuleExtractor {
         ref.resolved &&
         ref.resolved.scope.type === "module"
       ) {
-        const idName = ref.identifier.name;
-        let importNameInfo: ImportIdentifierInfo | null = null;
-        if (this.importManager.idMap.get(idName)) {
-          importNameInfo = this.importManager.idMap.get(
-            idName,
-          )!;
-        }
-        this.refsToModule.push([ref.identifier.name, importNameInfo]);
+        this.refsToModule.push(ref.identifier.name);
       }
     });
     scope.childScopes.forEach(this.traverse);
