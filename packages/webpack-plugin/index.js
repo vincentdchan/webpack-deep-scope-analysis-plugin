@@ -18,6 +18,9 @@ class WebpackDeepScopeAnalysisPlugin {
           (depRef, dep, module) => {
             if (dep.type === "harmony import specifier") {
               const moduleScopeAnalyser = this.moduleMap.get(module.resource);
+              if (typeof moduleScopeAnalyser === "undefined") {
+                return depRef;
+              }
               let { usedExports } = dep.originModule;
 
               if (usedExports === false) usedExports = [];
