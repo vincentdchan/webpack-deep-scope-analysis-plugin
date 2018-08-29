@@ -5,7 +5,7 @@ const pluginName = "WebpackDeepScopeAnalysisPlugin";
 
 class WebpackDeepScopeAnalysisPlugin {
   constructor() {
-    this.moduleMap = new Map();
+    this.moduleMap = new WeakMap();
   }
 
   apply(compiler) {
@@ -17,7 +17,7 @@ class WebpackDeepScopeAnalysisPlugin {
           pluginName,
           (depRef, dep, module) => {
             if (dep.type === "harmony import specifier") {
-              const moduleScopeAnalyser = this.moduleMap.get(module.resource);
+              const moduleScopeAnalyser = this.moduleMap.get(module);
               if (typeof moduleScopeAnalyser === "undefined") {
                 return depRef;
               }
@@ -56,13 +56,14 @@ class WebpackDeepScopeAnalysisPlugin {
           }
 
           parser.hooks.program.tap(pluginName, (ast, comments) => {
-            const resourceName = parser.state.module.resource;
-            if (!this.moduleMap.has(resourceName)) {
-              const analyser = new ModuleAnalyser(resourceName, parser.state.module);
+            const { module } = parser.state;
+            const resourceName = module.resource;
+            if (!this.moduleMap.has(module)) {
+              const analyser = new ModuleAnalyser(resourceName, module);
               analyser.analyze(ast, {
                 comments,
               });
-              this.moduleMap.set(resourceName, analyser);
+              this.moduleMap.set(module, analyser);
             }
           });
         };
