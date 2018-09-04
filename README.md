@@ -57,6 +57,10 @@ As you know, it's difficult for ECMAScript to analyze the side effects. Hence, `
 
 # Changelog
 
+### v1.6.0
+
+ - rename package *webpack-deep-scope-analysis* to *deep-scope-analyser*, which is published as a new npm package. It's aimed to be a standalone analyser.
+
 ### v1.5.4
 
  - Fix [#7](https://github.com/vincentdchan/webpack-deep-scope-analysis-plugin/issues/7): `import * from 'xxx'` syntax
