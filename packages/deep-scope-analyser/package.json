@@ -1,6 +1,6 @@
 {
   "name": "deep-scope-analyser",
-  "version": "1.5.4",
+  "version": "1.6.0",
   "author": "Vincent Chan <okcdz@diverse.space>",
   "license": "MIT",
   "main": "lib/index.js",
