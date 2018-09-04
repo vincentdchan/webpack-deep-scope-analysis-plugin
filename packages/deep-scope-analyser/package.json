@@ -1,5 +1,5 @@
 {
-  "name": "webpack-deep-scope-analysis",
+  "name": "deep-scope-analyser",
   "version": "1.5.4",
   "author": "Vincent Chan <okcdz@diverse.space>",
   "license": "MIT",

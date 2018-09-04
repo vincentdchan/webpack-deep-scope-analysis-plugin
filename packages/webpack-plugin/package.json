@@ -15,6 +15,6 @@
     "webpack": "^4.14.0"
   },
   "dependencies": {
-    "webpack-deep-scope-analysis": "^1.5.4"
+    "deep-scope-analyser": "^1.5.4"
   }
 }

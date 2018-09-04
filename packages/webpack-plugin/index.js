@@ -1,4 +1,4 @@
-const { ModuleAnalyser } = require("webpack-deep-scope-analysis");
+const { ModuleAnalyser } = require("deep-scope-analyser");
 // const version = require("./package.json").version;
 
 const pluginName = "WebpackDeepScopeAnalysisPlugin";
