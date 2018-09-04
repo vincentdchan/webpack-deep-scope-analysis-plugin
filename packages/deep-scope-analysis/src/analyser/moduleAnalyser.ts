@@ -16,13 +16,14 @@ import {
   ExportDefaultVirtualScope,
   VirtualScopeType,
 } from "./virtualScope";
+import { ImportType } from "../importManager";
 
 export interface Dictionary<T> {
   [index: string]: T;
 }
 
 export interface ExportInfo {
-  sourceName: string;
+  sourceName: string | true;
   moduleName: string;
 }
 
@@ -287,10 +288,17 @@ export class ModuleAnalyser {
         if (vs.contentType === VScopeContentType.Import) {
           const name = varVScope.variable.name;
           const importInfo = this.moduleScope.importManager.idMap.get(name)!;
-          resultList.push({
-            sourceName: importInfo.sourceName,
-            moduleName: importInfo.moduleName,
-          });
+          if (importInfo.type === ImportType.Namespace) {
+            resultList.push({
+              sourceName: true,
+              moduleName: importInfo.moduleName,
+            });
+          } else {
+            resultList.push({
+              sourceName: importInfo.sourceName,
+              moduleName: importInfo.moduleName,
+            });
+          }
         }
       }
 
@@ -311,23 +319,30 @@ export class ModuleAnalyser {
       }
     });
 
-    const resultMap: Dictionary<Set<string>> = {};
+    const resultMap: Dictionary<string[] | Set<string> | boolean> = {};
 
-    resultList.forEach(({ sourceName, moduleName }) => {
-      if (moduleName in resultMap) {
-        resultMap[moduleName].add(sourceName);
+    for (const entity of resultList) {
+      const { sourceName, moduleName } = entity;
+      if (resultMap[moduleName] === true) continue;
+      if (sourceName === true) {
+        resultMap[moduleName] = true;
+      } else if (moduleName in resultMap) {
+        (resultMap[moduleName] as Set<string>).add(sourceName);
       } else {
         resultMap[moduleName] = new Set([sourceName]);
       }
-    });
+    }
 
-    return Object.entries(resultMap).reduce(
-      (acc: Dictionary<string[]>, [moduleName, sourceNameSet]) => {
-        acc[moduleName] = [...sourceNameSet].sort();
-        return acc;
-      },
-      {},
-    );
+    for (const key in resultMap) {
+      if (resultMap.hasOwnProperty(key)) {
+        const value = resultMap[key];
+        if (value !== true) {
+          resultMap[key] = [...(value as Set<string>)].sort();
+        }
+      }
+    }
+
+    return resultMap;
   }
 
   /**

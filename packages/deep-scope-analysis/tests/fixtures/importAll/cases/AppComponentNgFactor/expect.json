@@ -1,0 +1,4 @@
+{
+  "@angular/core": true,
+  "./app.component": true
+}
