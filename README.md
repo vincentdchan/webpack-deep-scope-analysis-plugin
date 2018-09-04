@@ -59,11 +59,11 @@ As you know, it's difficult for ECMAScript to analyze the side effects. Hence, `
 
 ### v1.5.4
 
- - Fix [#7](#7)
+ - Fix [#7](https://github.com/vincentdchan/webpack-deep-scope-analysis-plugin/issues/7): `import * from 'xxx'` syntax
 
 ### v1.5.3
 
- - Fix [#5](#5)
+ - Fix [#5](https://github.com/vincentdchan/webpack-deep-scope-analysis-plugin/issues/5)
 
 ### v1.5.2
 
