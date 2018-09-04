@@ -57,19 +57,23 @@ As you know, it's difficult for ECMAScript to analyze the side effects. Hence, `
 
 # Changelog
 
-## v1.5.3
+### v1.5.4
 
- - Fix #5
+ - Fix [#7](#7)
 
-## v1.5.2
+### v1.5.3
+
+ - Fix [#5](#5)
+
+### v1.5.2
 
  - Improve performance and code quality
 
-## v1.5.0
+### v1.5.0
 
  - Introduce `VirtualScope` to simulate module variable
 
-## v1.4.0
+### v1.4.0
 
  - Fix #4
  - Publish
