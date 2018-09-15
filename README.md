@@ -49,7 +49,7 @@ The plugin will analyze the scope and determine if the variables should be impor
 
 [Medium](https://medium.com/webpack/better-tree-shaking-with-deep-scope-analysis-a0b788c0ce77)
 
-[中文版](https://vincentdchan.github.io/2018/05/better-tree-shaking-with-scope-analysis/)
+[中文版](https://vincentdchan.github.io/2018/05/better-tree-shaking-with-scope-analysis/)
 
 ## Pure Annotation
 
