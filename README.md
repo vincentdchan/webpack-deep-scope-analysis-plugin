@@ -6,6 +6,8 @@
 A webpack plugin for deep scope analysis.
 It's a project of [GSoC 2018](https://summerofcode.withgoogle.com/organizations/4657420148670464/#projects) webpack organization.
 
+**It's a plugin to improve tree-shaking.** It can make webpack eliminate the unused imports related to the unused exports. It solves the issue [6254](https://github.com/webpack/webpack/issues/6264) for webpack.
+
 Student: [@Vincent](https://github.com/vincentdchan)   Mentor: [@Tobias](https://github.com/sokra)
 
 Demo: [https://vincentdchan.github.io/webpack-deep-scope-demo/](https://vincentdchan.github.io/webpack-deep-scope-demo/)
