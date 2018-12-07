@@ -32,7 +32,7 @@ Enable the plugin in `webpack.config.js`:
 ```javascript
 const WebpackDeepScopeAnalysisPlugin = require('webpack-deep-scope-plugin').default;
 
-module.export = {
+module.exports = {
   ...,
   plugins: [
     ...,
