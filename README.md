@@ -59,6 +59,10 @@ As you know, it's difficult for ECMAScript to analyze the side effects. Hence, `
 
 # Changelog
 
+### v1.7.0
+
+- Fix: #10
+
 ### v1.6.1
 
 - Upgrade tslint for security issue
