@@ -1,5 +1,16 @@
 # Webpack Deep Scope Analysis Plugin
 
+This project is not maintained.
+
+**TLDR: This plugin will break your code, please use webpack5 instead.**
+
+This plugin can not work perfectly with webpack4. It will break your code in some cases. Webpack5 covers all the features implemented by this plugin, using wepback5 is a wise choice.
+
+The reason according to [sokra](https://github.com/sokra):
+
+> With DependencyReference returning null you prevent the module to be part of the chunk, but the Dependency doesn't know about that and always generates code to reference the module and try to load it at runtime. But there is no way to tell the Dependency that.
+
+
 ![](https://travis-ci.org/vincentdchan/webpack-deep-scope-analysis-plugin.svg?branch=master)
 [![npm version](https://badge.fury.io/js/webpack-deep-scope-plugin.svg)](https://badge.fury.io/js/webpack-deep-scope-plugin)
 
