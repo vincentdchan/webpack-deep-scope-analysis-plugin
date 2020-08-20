@@ -27,7 +27,7 @@
     "@types/estree": "^0.0.39",
     "@types/node": "^9.6.0",
     "@types/ramda": "^0.25.24",
-    "acorn": "^5.5.3",
+    "acorn": "^5.7.4",
     "chai": "^4.1.2",
     "chai-jest-diff": "^1.0.2",
     "mocha": "^5.1.1",
