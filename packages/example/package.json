@@ -6,7 +6,7 @@
   "sideEffects": false,
   "private": true,
   "dependencies": {
-    "lodash": "^4.17.10",
+    "lodash": "^4.17.21",
     "ramda": "^0.25.0",
     "webpack": "^4.10.1",
     "webpack-cli": "^2.1.4",
